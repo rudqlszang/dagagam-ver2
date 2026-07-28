@@ -8,8 +8,8 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "predeploy": "npm run build && node -e \"require('fs').copyFileSync('dist/index.html','dist/404.html')\"",
-    "deploy": "gh-pages -d dist -t"
+    "predeploy": "npm run build && node -e \"const f=require('fs');f.copyFileSync('dist/index.html','dist/404.html');f.writeFileSync('dist/.nojekyll','')\"",
+    "deploy": "gh-pages -d dist -t --dotfiles"
   },
   "dependencies": {
     "react": "^19.2.7",

@@ -6,9 +6,13 @@
 부모님은 아이의 성장을 **모국어로** 확인하고, 선생님은 수업자료와 알림장을
 **쉬운 한국어 · 모국어로** 전달한다.
 
+**▶ 바로 체험하기 : https://rudqlszang.github.io/dagagam/**
+(로그인 없이 링크만 열면 됩니다)
+
 ```bash
 npm install
 npm run dev      # http://localhost:5173
+npm run deploy   # GitHub Pages 재배포
 ```
 
 > 음성 인식은 **크롬(Chrome) 또는 엣지(Edge)** 에서 동작합니다.
