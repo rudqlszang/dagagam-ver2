@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { userAvatarUrl } from '../../mock/characters'
 import { getMission } from '../../mock/missions'
+import { findTopic } from '../../mock/places'
+import PlaceBackground from '../../components/child/PlaceBackground'
 import { useCast, useStore } from '../../store/useStore'
 import {
   createSession,
@@ -26,6 +28,7 @@ export default function Conversation() {
   const { missionId } = useParams()
   const navigate = useNavigate()
   const mission = getMission(missionId)
+  const { place } = findTopic(missionId)
 
   const nickname = useStore((s) => s.nickname)
   const subtitlesOn = useStore((s) => s.settings.subtitles)
@@ -273,10 +276,14 @@ export default function Conversation() {
   const ended = status === 'done'
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden bg-gradient-to-b from-brand-soft via-cream to-cream">
-      {/* 배경 장식 */}
-      <div className="pointer-events-none absolute -left-14 top-24 h-44 w-44 rounded-full bg-coral/10 blur-3xl" />
-      <div className="pointer-events-none absolute -right-16 top-8 h-48 w-48 rounded-full bg-sun/15 blur-3xl" />
+    <div className="relative flex h-full flex-col overflow-hidden bg-cream">
+      {/* 지금 있는 장소 — 어디서 이야기하는 중인지 그림으로 보이게 */}
+      <PlaceBackground
+        place={place.id}
+        variant="scene"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[62%] w-full"
+      />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-cream/30 to-cream" />
 
       {/* 헤더 */}
       <header className="relative z-30 flex shrink-0 items-center gap-2 px-4 pb-2 pt-[max(0.9rem,env(safe-area-inset-top))]">

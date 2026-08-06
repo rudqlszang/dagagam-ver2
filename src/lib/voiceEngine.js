@@ -305,11 +305,12 @@ function prosodyFor(sentence, base, index) {
   let { pitch, rate } = base
   const end = sentence.slice(-1)
 
+  // 억양은 살리되 폭을 좁게 둔다 — 크게 흔들면 사람이 아니라 기계처럼 들린다
   if (end === '?') {
-    pitch += 0.08
+    pitch += 0.06
     rate -= 0.02
   } else if (end === '!') {
-    pitch += 0.05
+    pitch += 0.03
     rate += 0.05
   } else if (sentence.endsWith(', ') || sentence.endsWith(',')) {
     rate -= 0.04
@@ -321,7 +322,7 @@ function prosodyFor(sentence, base, index) {
   rate += jitter
 
   return {
-    pitch: Math.min(2, Math.max(0.6, pitch)),
+    pitch: Math.min(1.4, Math.max(0.7, pitch)),
     rate: Math.min(1.6, Math.max(0.55, rate)),
   }
 }
@@ -455,7 +456,8 @@ export function speak(text, { character, roster, speed = 1, onSentence } = {}) {
 
   const voice = voiceFor(character, roster)
   const base = {
-    pitch: character?.voice?.pitch ?? 1.35,
+    // 음높이는 남/여 구분용이라 1 근처를 유지한다 (억지로 올리면 부자연스러워진다)
+    pitch: character?.voice?.pitch ?? 1,
     rate: (character?.voice?.rate ?? 1) * speed,
   }
 

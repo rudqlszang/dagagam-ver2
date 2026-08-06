@@ -16,10 +16,12 @@ const ENDPOINT = `${import.meta.env.BASE_URL ?? '/'}api/chat`.replace(/\/{2,}/g,
 /** 'unknown' | 'checking' | 'on' | 'off' */
 let state = 'unknown'
 let model = null
+let provider = null
+let trainsOnData = false
 let probe = null
 
 export function chatStatus() {
-  return { state, model }
+  return { state, model, provider, trainsOnData }
 }
 
 export function ensureProbe() {
@@ -34,6 +36,9 @@ export function ensureProbe() {
       const body = await res.json()
       state = body?.available ? 'on' : 'off'
       model = body?.model ?? null
+      provider = body?.provider ?? null
+      // 무료 티어는 대화 내용이 모델 개선에 쓰일 수 있다 — 동의 화면에서 알린다
+      trainsOnData = Boolean(body?.trainsOnData)
       return state
     })
     .catch(() => {

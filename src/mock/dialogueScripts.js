@@ -673,6 +673,277 @@ export const DIALOGUE_SCRIPTS = {
       { by: 'minjun', text: '다음엔 분식집 가자. 거기도 알려 줄게!', pause: 850 },
     ],
   },
+
+  /* ─────────────────────────── 급식실 · 오늘 급식 뭐야 ─────────── */
+  'lunch-menu': {
+    opening: [
+      { by: 'minjun', text: '와, 오늘 급식 뭐지? 배고파 죽겠어.' },
+      {
+        by: 'seoyeon',
+        text: '오늘 메뉴판 봤어? 너는 뭐가 제일 좋아?',
+        word: '메뉴',
+        pause: 900,
+      },
+    ],
+    beats: [
+      {
+        id: 'favorite',
+        match: [
+          {
+            any: ['고기', '불고기', '치킨', '돈까스', '소시지'],
+            replies: [
+              { by: 'minjun', text: '오, 나도 고기 좋아해! 우리 취향 비슷하다.' },
+              {
+                by: 'seoyeon',
+                text: '그럼 오늘 급식에 처음 보는 음식도 있어? 뭐가 궁금해?',
+                pause: 850,
+              },
+            ],
+          },
+          {
+            any: ['국', '밥', '김치', '나물', '반찬'],
+            replies: [
+              { by: 'seoyeon', text: '그거 우리 학교 급식에 자주 나와!' },
+              {
+                by: 'minjun',
+                text: '그럼 아직 안 먹어 본 건 뭐 있어? 말해 봐.',
+                pause: 850,
+              },
+            ],
+          },
+          {
+            any: ['몰라', '모르', '없어', '처음'],
+            replies: [
+              { by: 'seoyeon', text: '괜찮아, 나도 처음엔 이름 하나도 몰랐어.' },
+              {
+                by: 'minjun',
+                text: '오늘은 국이랑 볶음밥이 나온대. 뭐 먹어 볼래?',
+                word: '볶음밥',
+                pause: 850,
+              },
+            ],
+          },
+        ],
+        fallback: [
+          { by: 'minjun', text: '오, 그렇구나!' },
+          { by: 'seoyeon', text: '그럼 아직 못 먹어 본 음식은 뭐야?', pause: 800 },
+        ],
+        nudge: [
+          { by: 'seoyeon', text: '괜찮아, 천천히 말해도 돼.' },
+          { by: 'minjun', text: '밥이랑 국 중에 뭐가 더 좋아?', pause: 800 },
+        ],
+      },
+      {
+        id: 'try',
+        match: [
+          {
+            any: ['먹어볼', '먹을래', '해볼', '좋아', '응', '그래'],
+            replies: [
+              { by: 'minjun', text: '좋아! 조금만 받아서 먹어 보면 돼.' },
+              {
+                by: 'seoyeon',
+                text: '못 먹겠으면 "조금만 주세요"라고 하면 돼. 따라 해 볼래?',
+                word: '조금만 주세요',
+                pause: 900,
+              },
+            ],
+          },
+          {
+            any: ['매워', '못 먹', '싫어', '안 먹'],
+            replies: [
+              { by: 'seoyeon', text: '괜찮아. 안 먹어도 돼. 나도 못 먹는 거 있어.' },
+              {
+                by: 'minjun',
+                text: '그럴 땐 "저는 이거 못 먹어요"라고 말하면 돼. 해 볼래?',
+                pause: 900,
+              },
+            ],
+          },
+        ],
+        fallback: [
+          { by: 'seoyeon', text: '먹기 싫으면 안 먹어도 괜찮아.' },
+          {
+            by: 'minjun',
+            text: '"조금만 주세요"라고 말해 보자. 급식실에서 진짜 많이 써!',
+            word: '조금만 주세요',
+            pause: 850,
+          },
+        ],
+        nudge: [{ by: 'minjun', text: '"조금만 주세요" 한번 해 볼까?' }],
+      },
+    ],
+    closing: [
+      { by: 'seoyeon', text: '오늘 급식 이야기 잘했어!' },
+      { by: 'minjun', text: '내일은 같이 줄 서서 가자. 내가 알려 줄게!', pause: 850 },
+    ],
+  },
+
+  /* ─────────────────────────── 급식실 · 같이 앉아도 돼 ─────────── */
+  'lunch-seat': {
+    opening: [
+      { by: 'seoyeon', text: '어? 너 식판 들고 어디 앉을지 두리번거리네.' },
+      {
+        by: 'minjun',
+        text: '여기 자리 비었어! 우리한테 뭐라고 말하면서 앉을래?',
+        pause: 900,
+      },
+    ],
+    beats: [
+      {
+        id: 'ask',
+        match: [
+          {
+            any: ['같이', '앉아도', '앉을', '여기'],
+            replies: [
+              { by: 'minjun', text: '당연하지! 완전 환영이야.' },
+              {
+                by: 'seoyeon',
+                text: '그렇게 말하면 돼. 어렵지 않지? 우리 반에서 누구랑 앉고 싶어?',
+                pause: 900,
+              },
+            ],
+          },
+          {
+            any: ['부끄', '무서', '어떻게', '몰라', '모르'],
+            replies: [
+              { by: 'seoyeon', text: '나도 처음엔 진짜 떨렸어. 괜찮아.' },
+              {
+                by: 'minjun',
+                text: '"같이 앉아도 돼?" 딱 이 한마디면 돼. 해 볼래?',
+                word: '같이 앉아도 돼',
+                pause: 900,
+              },
+            ],
+          },
+        ],
+        fallback: [
+          { by: 'minjun', text: '좋아, 앉아 앉아!' },
+          {
+            by: 'seoyeon',
+            text: '다음엔 "같이 앉아도 돼?" 하고 먼저 물어보면 더 좋아. 해 볼래?',
+            word: '같이 앉아도 돼',
+            pause: 850,
+          },
+        ],
+        nudge: [
+          { by: 'seoyeon', text: '괜찮아, 소리 작아도 돼.' },
+          { by: 'minjun', text: '"같이 앉아도 돼?" 이렇게!', pause: 800 },
+        ],
+      },
+      {
+        id: 'talk',
+        match: [
+          {
+            any: ['좋아', '재밌', '고마', '응', '그래'],
+            replies: [
+              { by: 'seoyeon', text: '헤헤, 나도 너랑 먹으니까 좋아.' },
+              {
+                by: 'minjun',
+                text: '밥 먹으면서 무슨 이야기 하고 싶어?',
+                pause: 850,
+              },
+            ],
+          },
+        ],
+        fallback: [
+          { by: 'minjun', text: '오, 그래?' },
+          { by: 'seoyeon', text: '내일도 같이 먹을래?', pause: 800 },
+        ],
+        nudge: [{ by: 'seoyeon', text: '내일도 같이 먹을래?' }],
+      },
+    ],
+    closing: [
+      { by: 'minjun', text: '이제 급식실에서 혼자 안 앉아도 되겠다!' },
+      { by: 'seoyeon', text: '내일도 여기서 만나자. 자리 맡아 놓을게!', pause: 900 },
+    ],
+  },
+
+  /* ─────────────────────────── 체육관 · 나도 같이 하자 ─────────── */
+  'gym-join': {
+    opening: [
+      { by: 'minjun', text: '(체육관에서 공 튀기는 소리) 야, 패스!' },
+      {
+        by: 'seoyeon',
+        text: '어? 너도 하고 싶어? 그럼 뭐라고 말하면 될까?',
+        pause: 950,
+      },
+    ],
+    beats: [
+      {
+        id: 'join',
+        match: [
+          {
+            any: ['같이', '나도', '껴', '해도', '하고 싶'],
+            replies: [
+              { by: 'minjun', text: '오 좋아! 이리 와, 우리 팀 해!' },
+              {
+                by: 'seoyeon',
+                text: '봐, 말하니까 바로 됐지? 규칙은 알아?',
+                word: '규칙',
+                pause: 900,
+              },
+            ],
+          },
+          {
+            any: ['몰라', '모르', '못해', '처음', '안 해봤'],
+            replies: [
+              { by: 'seoyeon', text: '못해도 괜찮아! 나도 처음엔 하나도 몰랐어.' },
+              {
+                by: 'minjun',
+                text: '"나도 같이 해도 돼?" 이렇게만 말하면 돼. 해 볼래?',
+                pause: 900,
+              },
+            ],
+          },
+        ],
+        fallback: [
+          { by: 'minjun', text: '어어, 이리 와!' },
+          {
+            by: 'seoyeon',
+            text: '"나도 같이 해도 돼?" 하고 물어보는 연습 해 보자.',
+            pause: 850,
+          },
+        ],
+        nudge: [{ by: 'minjun', text: '"나도 같이 해도 돼?" 한번 크게 말해 봐!' }],
+      },
+      {
+        id: 'rule',
+        match: [
+          {
+            any: ['몰라', '모르', '알려', '가르쳐', '어떻게'],
+            replies: [
+              { by: 'seoyeon', text: '알겠어, 천천히 알려 줄게.' },
+              {
+                by: 'minjun',
+                text: '공 잡으면 세 걸음까지만! 모르면 언제든 물어봐. 알겠지?',
+                pause: 900,
+              },
+            ],
+          },
+          {
+            any: ['알아', '응', '알겠', '해봤'],
+            replies: [
+              { by: 'minjun', text: '오, 해 봤구나! 든든하네.' },
+              {
+                by: 'seoyeon',
+                text: '그럼 바로 들어가자. 어느 팀 하고 싶어?',
+                pause: 850,
+              },
+            ],
+          },
+        ],
+        fallback: [
+          { by: 'seoyeon', text: '모르는 건 물어봐도 돼. 아무도 뭐라고 안 해.' },
+          { by: 'minjun', text: '자, 이제 같이 뛰자!', pause: 800 },
+        ],
+        nudge: [{ by: 'seoyeon', text: '모르면 "어떻게 하는 거야?" 하고 물어봐도 돼.' }],
+      },
+    ],
+    closing: [
+      { by: 'minjun', text: '오늘 진짜 잘했어! 같이 하니까 훨씬 재밌다.' },
+      { by: 'seoyeon', text: '다음 체육 시간에도 같이 하자!', pause: 900 },
+    ],
+  },
 }
 
 export function getScript(missionId) {

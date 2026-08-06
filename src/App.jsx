@@ -12,6 +12,7 @@ import MyPage from './pages/child/MyPage'
 import FriendPicker from './pages/child/FriendPicker'
 import FriendMaker from './pages/child/FriendMaker'
 import FriendOnboarding from './pages/child/FriendOnboarding'
+import PlacePicker from './pages/child/PlacePicker'
 import ParentDashboard from './pages/parent/ParentDashboard'
 import ParentNotices from './pages/parent/ParentNotices'
 import ParentTranscripts from './pages/parent/ParentTranscripts'
@@ -80,6 +81,26 @@ export default function App() {
               <RequireConsent>
                 <RequireFriends>
                   <ChildHome />
+                </RequireFriends>
+              </RequireConsent>
+            }
+          />
+          <Route
+            path="/child/places"
+            element={
+              <RequireConsent>
+                <RequireFriends>
+                  <PlacePicker />
+                </RequireFriends>
+              </RequireConsent>
+            }
+          />
+          <Route
+            path="/child/places/:placeId"
+            element={
+              <RequireConsent>
+                <RequireFriends>
+                  <PlacePicker />
                 </RequireFriends>
               </RequireConsent>
             }

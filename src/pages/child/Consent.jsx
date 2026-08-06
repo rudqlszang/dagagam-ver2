@@ -49,10 +49,11 @@ export default function Consent() {
    * 기본(무료) 모드는 기기 안에서 끝나지만, 서버에 AI 키가 있으면 아이가 한 말이
    * 실제로 AI 서버로 전달된다. 보호자 동의 화면에서 이걸 숨기면 안 된다.
    */
-  const [aiMode, setAiMode] = useState(chatStatus().state === 'on')
+  const [ai, setAi] = useState(() => chatStatus())
   useEffect(() => {
-    ensureProbe().then(() => setAiMode(chatStatus().state === 'on'))
+    ensureProbe().then(() => setAi(chatStatus()))
   }, [])
+  const aiMode = ai.state === 'on'
 
   const allRequired = AGREEMENTS.filter((a) => a.required).every((a) => checked[a.id])
   const allChecked = AGREEMENTS.every((a) => checked[a.id])
@@ -175,6 +176,15 @@ export default function Consent() {
               🔒 아이가 한 말은 친구의 대답을 만들기 위해 <b className="text-ink">AI 서버로
               전달</b>됩니다. 음성 파일은 보내지 않고, 글자로 바뀐 내용만 전달돼요.
               대화 기록은 이 기기에만 남고 새로고침하면 사라집니다.
+              {ai.trainsOnData && (
+                <>
+                  <br />
+                  <br />
+                  ⚠️ 지금은 <b className="text-ink">무료 요금제</b>로 연결돼 있어, 주고받은
+                  내용이 <b className="text-ink">해당 AI 회사의 모델 개선에 쓰일 수 있습니다.</b>{' '}
+                  아이의 이름·학교 같은 개인정보는 말하지 않도록 미리 알려 주세요.
+                </>
+              )}
             </>
           ) : (
             <>

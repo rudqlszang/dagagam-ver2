@@ -1,20 +1,34 @@
 /**
  * /api/chat — AI 친구의 다음 대사 생성 (선택 기능)
  *
- * ▸ ANTHROPIC_API_KEY 가 없으면 GET은 { available:false }, POST는 501을 돌려준다.
+ * ▸ 키가 하나도 없으면 GET은 { available:false }, POST는 501을 돌려준다.
  *   → 앱은 즉시 로컬 스크립트로 내려가고, 아무 비용 없이 데모가 끝까지 돌아간다.
- * ▸ 키가 있으면 아이가 고른 캐릭터의 페르소나로 실제 대사를 만들어 준다.
+ * ▸ 키가 있으면 아이가 만든 친구의 페르소나로 실제 대사를 만들어 준다.
+ *
+ * 제공자 (있는 것 중 위에서부터)
+ *   GEMINI_API_KEY     Google AI Studio — 무료 티어. 카드 등록이 필요 없다.
+ *                      ⚠️ 무료 티어는 주고받은 내용이 구글의 모델 개선에 쓰일 수
+ *                      있다. 아동 서비스라 동의 화면에서 그 사실을 알린다.
+ *   ANTHROPIC_API_KEY  Claude — 무료 티어가 없다(유료). 품질 우선일 때.
  *
  * 키는 서버에만 둔다. 브라우저 번들에는 절대 들어가지 않는다.
- *
- * 환경변수
- *   ANTHROPIC_API_KEY  (필수 — 없으면 기능 자체가 꺼진다)
- *   ANTHROPIC_MODEL    (선택 — 기본 claude-opus-5)
  */
 
 import Anthropic from '@anthropic-ai/sdk'
 
-const MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-5'
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-5'
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+
+/** 어떤 제공자를 쓸지 — 무료인 쪽을 먼저 본다 */
+function activeProvider() {
+  if (process.env.GEMINI_API_KEY) {
+    return { id: 'gemini', model: GEMINI_MODEL, free: true }
+  }
+  if (process.env.ANTHROPIC_API_KEY) {
+    return { id: 'anthropic', model: ANTHROPIC_MODEL, free: false }
+  }
+  return null
+}
 
 /** 응답 형식을 스키마로 못 박아 둔다 — 파싱 실패로 대화가 끊기지 않게 */
 const REPLY_SCHEMA = {
@@ -97,26 +111,94 @@ ${classNote ? `- 선생님이 알려 준 학급 정보: ${classNote}` : ''}
 - 무섭거나 슬픈 이야기로 대화를 끌고 가지 않는다.`
 }
 
-function buildMessages({ history, userText }) {
+function buildPrompt({ history, userText }) {
   const lines = (history ?? []).map((h) =>
     h.role === 'child' ? `아이: ${h.text}` : `친구(${h.name}): ${h.text}`,
   )
   lines.push(`아이: ${userText}`)
 
-  return [
-    {
-      role: 'user',
-      content: `지금까지의 대화야.\n\n${lines.join('\n')}\n\n이제 친구들이 할 말을 만들어 줘.`,
-    },
-  ]
+  return `지금까지의 대화야.\n\n${lines.join('\n')}\n\n이제 친구들이 할 말을 만들어 줘.`
 }
 
+/* ── 제공자별 호출 — 둘 다 같은 모양({lines})으로 돌려준다 ─────── */
+
+/**
+ * Gemini의 responseSchema는 OpenAPI 부분집합이라 additionalProperties를 받지 않는다.
+ * (넣으면 400) 재귀적으로 걷어낸 사본을 만들어 넘긴다.
+ */
+function toGeminiSchema(schema) {
+  const { additionalProperties: _drop, ...rest } = schema
+  if (rest.properties) {
+    rest.properties = Object.fromEntries(
+      Object.entries(rest.properties).map(([k, v]) => [k, toGeminiSchema(v)]),
+    )
+  }
+  if (rest.items) rest.items = toGeminiSchema(rest.items)
+  return rest
+}
+
+async function askGemini({ system, prompt }) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-goog-api-key': process.env.GEMINI_API_KEY,
+    },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: system }] },
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: toGeminiSchema(REPLY_SCHEMA),
+        maxOutputTokens: 512,
+      },
+    }),
+  })
+  if (!res.ok) throw new Error(`gemini ${res.status} ${(await res.text()).slice(0, 160)}`)
+
+  const body = await res.json()
+  // 안전 필터에 걸리면 candidates가 비거나 finishReason이 SAFETY로 온다
+  const text = body?.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? ''
+  return text
+}
+
+async function askAnthropic({ system, prompt }) {
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  const message = await client.messages.create({
+    model: ANTHROPIC_MODEL,
+    max_tokens: 1024,
+    system,
+    messages: [{ role: 'user', content: prompt }],
+    output_config: {
+      effort: 'low', // 짧은 또래 대화 — 깊게 생각할수록 오히려 늦고 장황해진다
+      format: { type: 'json_schema', schema: REPLY_SCHEMA },
+    },
+  })
+
+  // 안전 분류기가 거절하면 앱이 스크립트로 내려가게 빈 값을 준다
+  if (message.stop_reason === 'refusal') return ''
+
+  return message.content
+    .filter((b) => b.type === 'text')
+    .map((b) => b.text)
+    .join('')
+}
+
+/* ── 핸들러 ─────────────────────────────────────────────────────── */
+
 export default async function handler(req, res) {
-  const apiKey = process.env.ANTHROPIC_API_KEY
+  const provider = activeProvider()
 
   if (req.method === 'GET') {
     res.setHeader('content-type', 'application/json')
-    res.status(200).json({ available: Boolean(apiKey), model: apiKey ? MODEL : null })
+    res.status(200).json({
+      available: Boolean(provider),
+      provider: provider?.id ?? null,
+      model: provider?.model ?? null,
+      // 무료 티어는 대화 내용이 모델 개선에 쓰일 수 있다 — 동의 화면이 이 값을 읽는다
+      trainsOnData: provider?.id === 'gemini',
+    })
     return
   }
 
@@ -125,7 +207,7 @@ export default async function handler(req, res) {
     return
   }
 
-  if (!apiKey) {
+  if (!provider) {
     // 무료 기본 모드 — 앱은 이 응답을 보고 로컬 스크립트로 진행한다
     res.status(501).json({ error: 'not_configured' })
     return
@@ -140,29 +222,12 @@ export default async function handler(req, res) {
       return
     }
 
-    const client = new Anthropic({ apiKey })
-
-    const message = await client.messages.create({
-      model: MODEL,
-      max_tokens: 1024,
+    const args = {
       system: buildSystem({ mission, characters, child, classNote }),
-      messages: buildMessages({ history, userText }),
-      output_config: {
-        effort: 'low', // 짧은 또래 대화 — 깊게 생각할수록 오히려 늦고 장황해진다
-        format: { type: 'json_schema', schema: REPLY_SCHEMA },
-      },
-    })
-
-    // 안전 분류기가 거절하면 content가 비어 있을 수 있다 → 앱이 스크립트로 내려가게 둔다
-    if (message.stop_reason === 'refusal') {
-      res.status(200).json({ lines: [] })
-      return
+      prompt: buildPrompt({ history, userText }),
     }
-
-    const text = message.content
-      .filter((b) => b.type === 'text')
-      .map((b) => b.text)
-      .join('')
+    const text =
+      provider.id === 'gemini' ? await askGemini(args) : await askAnthropic(args)
 
     let parsed
     try {

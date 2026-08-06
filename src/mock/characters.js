@@ -15,6 +15,15 @@
  *                gender로 후보를 좁히고 pitch/rate로 캐릭터 색을 낸다.
  */
 
+/**
+ * 음높이는 남/여 구분만 한다.
+ *
+ * 아이 목소리처럼 들리게 하려고 pitch를 1.5~1.7까지 올렸었는데, 그러면
+ * 아이 같아지는 게 아니라 그냥 부자연스러워진다. 브라우저 음성은 성인 화자를
+ * 그대로 끌어올리는 것뿐이라 톤만 이상해진다. 자연스러움을 택했다.
+ */
+export const VOICE_PITCH = { female: 1.12, male: 0.95 }
+
 const DICEBEAR = 'https://api.dicebear.com/9.x/adventurer/svg'
 
 export function dicebearUrl(seed, opts = {}) {
@@ -131,7 +140,7 @@ export const BUILTIN_CHARACTERS = [
     background: null,
     persona:
       '장난스럽고 말이 빠른 편. 먼저 말을 걸고 리액션이 크다. 짧은 문장으로 신나게 말한다.',
-    voice: { gender: 'male', pitch: 1.35, rate: 1.06 },
+    voice: { gender: 'male', pitch: VOICE_PITCH.male, rate: 1.06 },
   }),
   make({
     id: 'seoyeon',
@@ -145,7 +154,7 @@ export const BUILTIN_CHARACTERS = [
     background: null,
     persona:
       '차분하게 되묻고 챙겨준다. 어려운 말이 나오면 꼭 쉬운 말로 바꿔서 한 번 더 설명해 준다.',
-    voice: { gender: 'female', pitch: 1.5, rate: 0.97 },
+    voice: { gender: 'female', pitch: VOICE_PITCH.female, rate: 0.97 },
   }),
   make({
     id: 'haneul',
@@ -159,7 +168,7 @@ export const BUILTIN_CHARACTERS = [
     background: null,
     persona:
       '천천히, 또박또박 말한다. 같은 질문을 몇 번을 해도 귀찮아하지 않고 다시 설명한다. 한 번에 한 가지씩만 알려 준다.',
-    voice: { gender: 'female', pitch: 1.2, rate: 0.9 },
+    voice: { gender: 'female', pitch: VOICE_PITCH.female, rate: 0.9 },
   }),
   make({
     id: 'jiho',
@@ -173,7 +182,7 @@ export const BUILTIN_CHARACTERS = [
     background: null,
     persona:
       '질문을 많이 한다. "왜?", "그래서 어떻게 됐어?" 하고 계속 물어봐서 아이가 말을 더 하게 만든다.',
-    voice: { gender: 'male', pitch: 1.45, rate: 1.02 },
+    voice: { gender: 'male', pitch: VOICE_PITCH.male, rate: 1.02 },
   }),
   make({
     id: 'yuna',
@@ -187,7 +196,7 @@ export const BUILTIN_CHARACTERS = [
     background: '엄마가 필리핀 사람이고, 나는 한국에서 태어났어.',
     persona:
       '항상 신나 있다. 아이가 한 말을 크게 칭찬해 주고, 노래나 좋아하는 것 이야기로 자연스럽게 이어 간다.',
-    voice: { gender: 'female', pitch: 1.65, rate: 1.04 },
+    voice: { gender: 'female', pitch: VOICE_PITCH.female, rate: 1.04 },
   }),
   make({
     id: 'tao',
@@ -201,7 +210,7 @@ export const BUILTIN_CHARACTERS = [
     background: '2년 전에 베트남에서 왔어. 나도 아직 한국어를 배우는 중이야.',
     persona:
       '아이와 같은 처지라서 "나도 그거 어려웠어" 하고 공감해 준다. 어려운 낱말은 자기도 헷갈렸다고 말하며 쉬운 말로 바꿔 준다. 문장을 짧게 끊어서 말한다.',
-    voice: { gender: 'male', pitch: 1.25, rate: 0.92 },
+    voice: { gender: 'male', pitch: VOICE_PITCH.male, rate: 0.92 },
   }),
 ]
 
@@ -240,10 +249,10 @@ export const SPEAK_STYLES = [
 ]
 
 export const VOICE_PRESETS = [
-  { id: 'kid-high', label: '높고 밝은 목소리', gender: 'female', pitch: 1.7, rate: 1.04 },
-  { id: 'kid-soft', label: '부드러운 목소리', gender: 'female', pitch: 1.4, rate: 0.95 },
-  { id: 'kid-boy', label: '씩씩한 목소리', gender: 'male', pitch: 1.4, rate: 1.05 },
-  { id: 'kid-calm', label: '천천히 말하는 목소리', gender: 'male', pitch: 1.15, rate: 0.88 },
+  { id: 'girl', label: '여자 친구 목소리', gender: 'female', rate: 1 },
+  { id: 'girl-slow', label: '여자 · 천천히', gender: 'female', rate: 0.88 },
+  { id: 'boy', label: '남자 친구 목소리', gender: 'male', rate: 1 },
+  { id: 'boy-slow', label: '남자 · 천천히', gender: 'male', rate: 0.88 },
 ]
 
 const STYLE_PERSONA = {
@@ -286,7 +295,7 @@ export function buildCustomCharacter(draft, id) {
     likes,
     background: draft.background?.trim() || null,
     persona: personaParts.join(' '),
-    voice: { gender: preset.gender, pitch: preset.pitch, rate: preset.rate },
+    voice: { gender: preset.gender, pitch: VOICE_PITCH[preset.gender], rate: preset.rate },
     style: draft.style ?? 'friendly',
     voicePreset: preset.id,
     custom: true,
@@ -317,22 +326,26 @@ export const HOBBY_KEYWORDS = [
 ]
 
 /**
- * 성격 키워드 — 말투(persona)와 목소리(pitch/rate)를 동시에 결정한다.
+ * 성격 키워드 — 말투(persona)와 말하기 속도(rate)를 결정한다.
  *
  * label은 아이가 고르는 칩에 쓰는 대화체("활발해"),
  * adj는 문장에 끼워 넣을 관형형("활발한 친구")이다. 둘을 섞어 쓰면
  * "활발해 친구" 같은 문장이 나온다.
+ *
+ * pitch는 여기서 다루지 않는다. 성격마다 음높이를 흔들면 목소리가 부자연스러워진다.
+ * 음높이는 남/여만 구분한다. (VOICE_PITCH)
  */
 export const TRAIT_KEYWORDS = [
-  { label: '활발해', adj: '활발한', persona: '늘 신나 있고 먼저 말을 건다.', pitch: 1.55, rate: 1.08 },
-  { label: '차분해', adj: '차분한', persona: '조용조용 말하고 서두르지 않는다.', pitch: 1.2, rate: 0.9 },
-  { label: '장난꾸러기야', adj: '장난기 많은', persona: '농담을 자주 하고 리액션이 크다.', pitch: 1.5, rate: 1.1 },
-  { label: '잘 들어 줘', adj: '잘 들어 주는', persona: '끝까지 듣고 아이 말을 되짚어 준다.', pitch: 1.35, rate: 0.95 },
-  { label: '칭찬을 많이 해', adj: '칭찬을 많이 하는', persona: '아이가 한 말을 크게 칭찬해 준다.', pitch: 1.6, rate: 1.02 },
-  { label: '천천히 말해', adj: '천천히 말하는', persona: '한 문장씩 또박또박 천천히 말한다.', pitch: 1.25, rate: 0.82 },
-  { label: '질문을 많이 해', adj: '질문이 많은', persona: '“왜?”, “그래서 어떻게 됐어?” 하고 계속 물어본다.', pitch: 1.45, rate: 1.05 },
-  { label: '설명을 잘해', adj: '설명을 잘하는', persona: '어려운 말이 나오면 꼭 쉬운 말로 바꿔서 알려 준다.', pitch: 1.3, rate: 0.92 },
+  { label: '활발해', adj: '활발한', persona: '늘 신나 있고 먼저 말을 건다.', rate: 1.08 },
+  { label: '차분해', adj: '차분한', persona: '조용조용 말하고 서두르지 않는다.', rate: 0.9 },
+  { label: '장난꾸러기야', adj: '장난기 많은', persona: '농담을 자주 하고 리액션이 크다.', rate: 1.1 },
+  { label: '잘 들어 줘', adj: '잘 들어 주는', persona: '끝까지 듣고 아이 말을 되짚어 준다.', rate: 0.95 },
+  { label: '칭찬을 많이 해', adj: '칭찬을 많이 하는', persona: '아이가 한 말을 크게 칭찬해 준다.', rate: 1.02 },
+  { label: '천천히 말해', adj: '천천히 말하는', persona: '한 문장씩 또박또박 천천히 말한다.', rate: 0.82 },
+  { label: '질문을 많이 해', adj: '질문이 많은', persona: '“왜?”, “그래서 어떻게 됐어?” 하고 계속 물어본다.', rate: 1.05 },
+  { label: '설명을 잘해', adj: '설명을 잘하는', persona: '어려운 말이 나오면 꼭 쉬운 말로 바꿔서 알려 준다.', rate: 0.92 },
 ]
+
 
 /** 순우리말 이름 — 받침 유무가 섞여 있어야 조사 처리가 자연스럽다 */
 const NAME_POOL = [
@@ -372,9 +385,9 @@ export function buildFriendFromKeywords(picks, { id, roll = 0, avoidAccents = []
   const accent = (free.length ? free : ACCENT_KEYS)[key % (free.length || ACCENT_KEYS.length)]
 
   // 목소리는 고른 성격들의 평균 — '천천히 말해'를 고르면 실제로 느려진다
-  const avg = (field) =>
-    traitDefs.reduce((sum, t) => sum + t[field], 0) / (traitDefs.length || 1)
   const gender = key % 2 === 0 ? 'female' : 'male'
+  const rate =
+    traitDefs.reduce((sum, t) => sum + t.rate, 0) / (traitDefs.length || 1)
 
   const personaParts = [
     `${likes.join(', ')}을(를) 좋아한다.`,
@@ -400,8 +413,8 @@ export function buildFriendFromKeywords(picks, { id, roll = 0, avoidAccents = []
     persona: personaParts.join(' '),
     voice: {
       gender,
-      pitch: Math.round(avg('pitch') * 100) / 100,
-      rate: Math.round(avg('rate') * 100) / 100,
+      pitch: VOICE_PITCH[gender],
+      rate: Math.round(rate * 100) / 100,
     },
     keywords: { likes, traits: traitDefs.map((t) => t.label), extra: picks.extra ?? '' },
     roll,
@@ -421,7 +434,7 @@ export function emptyCustomDraft() {
     traits: [],
     likes: [],
     style: 'friendly',
-    voicePreset: 'kid-high',
+    voicePreset: 'girl',
     background: '',
   }
 }

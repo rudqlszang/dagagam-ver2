@@ -256,7 +256,7 @@ export default function FriendMaker() {
                 {v.label}
               </span>
               <span className="mt-1 block text-[11px] text-ink-soft">
-                {v.gender === 'male' ? '남자 친구 목소리' : '여자 친구 목소리'}
+                {v.rate < 1 ? '천천히 말해요' : '보통 속도로 말해요'}
               </span>
             </button>
           ))}
