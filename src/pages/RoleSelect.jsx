@@ -124,9 +124,9 @@ export default function RoleSelect() {
             </div>
           </div>
           <p className="mt-3 text-center text-[11px] leading-relaxed text-ink-faint">
-            체험용 프로토타입 · 아무것도 저장하지 않아요
+            체험용 프로토타입 · 대화 기록은 서버로 보내지 않아요
             <br />
-            새로고침하면 누구나 이 화면부터 다시 시작합니다
+            내가 고른 친구와 설정만 이 기기에 남습니다
           </p>
         </div>
         </div>

@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# API 키 — 절대 커밋하지 않는다
+.env
+.env.*
+!.env.example
+.vercel
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

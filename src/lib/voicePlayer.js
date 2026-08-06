@@ -1,117 +1,138 @@
 /**
- * AI 캐릭터 음성 재생기
+ * AI 캐릭터 음성 재생기 (ver2)
  *
- * 재생 우선순위 (위에서부터 시도)
- *  1. 성우가 미리 녹음한 파일          public/voice/<캐릭터>/<미션>-<번호>.mp3
- *  2. 브라우저 기본 음성(SpeechSynthesis)  — 파일이 아직 없을 때의 임시 목소리
- *  3. 무음 + 자막 타이밍                — 둘 다 못 쓸 때
+ * 재생 우선순위 — 위에서부터 되는 것을 쓴다
+ *  1. 성우가 미리 녹음한 파일        public/voice/<캐릭터>/<미션>-<번호>.mp3
+ *  2. 서버 TTS API (선택)            /api/tts — 서버에 키가 있을 때만 켜진다
+ *  3. 브라우저 내장 음성 (무료 기본)  lib/voiceEngine.js — 신경망 음성 우선
+ *  4. 무음 + 자막 타이밍             위가 전부 안 될 때
  *
- * 나중에 mp3를 public/voice/ 에 넣기만 하면 1번으로 자동 승격된다.
- * 기본 음성이 싫으면 설정에서 "친구 목소리 듣기"를 끄면 3번으로 내려간다.
+ * 기본값은 3번이다. API 키가 하나도 없어도 앱은 끝까지 소리 내어 말한다.
  *
- * 파일 경로 규칙
- *  public/voice/minjun/group-project-01.mp3
- *  public/voice/seoyeon/first-day-03.mp3
+ * 1번을 켜려면 public/voice/manifest.json 에 파일 목록을 넣으면 된다.
+ * (manifest가 없으면 요청을 아예 보내지 않아서 대화가 밀리지 않는다)
  */
 
 import { getCharacter } from '../mock/characters'
+import { ensureProbe, synthesize, ttsStatus } from './ttsClient'
+import {
+  estimateDuration,
+  isSynthSupported,
+  speak,
+  splitSentences,
+  stopAll,
+} from './voiceEngine'
 
-/** 한 번 없다고 확인된 경로는 다시 요청하지 않는다 (자막 지연 방지) */
-const missingCache = new Set()
+export { estimateDuration, isSynthSupported }
+
+const BASE = import.meta.env.BASE_URL ?? '/'
+const asset = (p) => `${BASE}${p.replace(/^\//, '')}`
 
 const pad = (n) => String(n + 1).padStart(2, '0')
 
+/* ── 1단계: 녹음 파일 목록 ─────────────────────────────────────── */
+
+/** null = 아직 모름, false = 녹음 없음, Set = 있는 파일 목록 */
+let manifest = null
+let manifestPromise = null
+
+function ensureManifest() {
+  if (manifest !== null) return Promise.resolve(manifest)
+  if (manifestPromise) return manifestPromise
+
+  manifestPromise = fetch(asset('voice/manifest.json'))
+    .then((res) => (res.ok ? res.json() : null))
+    .then((body) => {
+      const files = Array.isArray(body?.files) ? body.files : null
+      manifest = files?.length ? new Set(files) : false
+      return manifest
+    })
+    .catch(() => {
+      manifest = false
+      return manifest
+    })
+
+  return manifestPromise
+}
+
+// 앱이 뜨자마자 한 번만 확인해 둔다 (없으면 이후 요청 0건)
+ensureManifest()
+
 export function resolveVoiceUrl(line, missionId, index) {
-  if (line.audio) return line.audio
+  if (line.audio) return asset(line.audio)
   const char = getCharacter(line.by)
-  return `${char.voiceDir}/${missionId}-${pad(index)}.mp3`
+  const rel = `${char.id}/${missionId}-${pad(index)}.mp3`
+  if (manifest instanceof Set && manifest.has(rel)) return asset(`voice/${rel}`)
+  return null
 }
 
-/** 자막이 자연스럽게 읽히는 속도로 무음 길이를 추정한다 */
-export function estimateDuration(text) {
-  const chars = (text ?? '').replace(/\s/g, '').length
-  return Math.min(6200, Math.max(1300, 620 + chars * 105))
-}
+/* ── 오디오 파일 재생 (1·2단계 공용) ───────────────────────────── */
 
-/* ── 브라우저 기본 음성 ─────────────────────────────────────────── */
-
-export function isSynthSupported() {
-  return typeof window !== 'undefined' && 'speechSynthesis' in window
-}
-
-let cachedVoice
-function pickKoreanVoice() {
-  if (cachedVoice !== undefined) return cachedVoice
-  const voices = window.speechSynthesis.getVoices()
-  if (!voices.length) return undefined // 아직 로딩 전 — 다음 호출에서 다시 시도
-  cachedVoice =
-    voices.find((v) => v.lang === 'ko-KR') ??
-    voices.find((v) => v.lang?.toLowerCase().startsWith('ko')) ??
-    null
-  return cachedVoice
-}
-
-// 크롬은 목소리 목록을 비동기로 채운다
-if (isSynthSupported()) {
-  window.speechSynthesis.addEventListener?.('voiceschanged', () => {
-    cachedVoice = undefined
-  })
-}
-
-/**
- * 기본 음성으로 한 줄 읽기.
- * @returns {{ promise: Promise<boolean>, cancel: Function }} 성공하면 true
- */
-function speakLine(line) {
-  let done = false
-  let guard = null
-  let resolveFn
+function playAudio(url, { revoke = false } = {}) {
+  let cancelled = false
+  let audio = null
 
   const promise = new Promise((resolve) => {
-    resolveFn = resolve
-    const synth = window.speechSynthesis
-    const utter = new SpeechSynthesisUtterance(line.text)
-    const char = getCharacter(line.by)
+    audio = new Audio(url)
+    audio.preload = 'auto'
 
-    utter.lang = 'ko-KR'
-    utter.pitch = char.tts?.pitch ?? 1.4
-    utter.rate = char.tts?.rate ?? 1
-    const voice = pickKoreanVoice()
-    if (voice) utter.voice = voice
-
+    const cleanup = () => {
+      if (revoke) URL.revokeObjectURL(url)
+    }
     const finish = (ok) => {
-      if (done) return
-      done = true
-      clearTimeout(guard)
+      if (cancelled) return
+      cleanup()
       resolve(ok)
     }
 
-    utter.onend = () => finish(true)
-    utter.onerror = () => finish(false)
+    audio.onended = () => finish(true)
+    audio.onerror = () => finish(false)
 
-    // onend가 오지 않는 브라우저가 있어 안전망을 둔다
-    guard = setTimeout(() => finish(true), estimateDuration(line.text) + 3500)
-
-    try {
-      synth.cancel()
-      synth.speak(utter)
-    } catch {
-      finish(false)
-    }
+    audio.play().catch(() => finish(false))
   })
 
   return {
     promise,
     cancel() {
-      if (done) return
-      done = true
-      clearTimeout(guard)
-      try {
-        window.speechSynthesis.cancel()
-      } catch {
-        /* noop */
+      cancelled = true
+      if (audio) {
+        audio.pause()
+        audio = null
       }
-      resolveFn?.(false)
+      if (revoke) URL.revokeObjectURL(url)
+    },
+  }
+}
+
+/* ── 2단계: 서버 TTS ───────────────────────────────────────────── */
+
+/** 문장별로 mp3를 받아 이어서 재생한다. 하나라도 실패하면 false. */
+function playViaServer(text, character) {
+  const sentences = splitSentences(text)
+  if (!sentences.length) return { promise: Promise.resolve(false), cancel() {} }
+
+  let cancelled = false
+  let current = null
+  const controller = new AbortController()
+
+  const promise = (async () => {
+    for (const sentence of sentences) {
+      if (cancelled) return true
+      const url = await synthesize(sentence, character, { signal: controller.signal })
+      if (!url || cancelled) return cancelled
+      current = playAudio(url)
+      const ok = await current.promise
+      if (!ok) return false
+    }
+    return true
+  })()
+
+  return {
+    promise,
+    cancel() {
+      cancelled = true
+      controller.abort()
+      current?.cancel()
     },
   }
 }
@@ -120,87 +141,74 @@ function speakLine(line) {
 
 /**
  * @param {object} line  { by, text, ... }
- * @param {object} opts  { missionId, index, useSynth }
+ * @param {object} opts  { missionId, index, useSynth, roster, speed }
  * @returns {{ promise: Promise<'played'|'spoken'|'silent'|'cancelled'>, cancel: Function }}
  */
-export function playLine(line, { missionId, index = 0, useSynth = true } = {}) {
-  const url = resolveVoiceUrl(line, missionId, index)
+export function playLine(
+  line,
+  { missionId, index = 0, useSynth = true, roster, speed = 1 } = {},
+) {
+  const character = getCharacter(line.by)
   let cancelled = false
-  let audio = null
+  let inner = null
   let timer = null
-  let speaking = null
 
-  const promise = new Promise((resolve) => {
-    // 3단계: 무음 + 자막 타이밍
-    const finishSilent = () => {
-      if (cancelled) return
-      timer = setTimeout(() => {
-        if (!cancelled) resolve('silent')
-      }, estimateDuration(line.text))
-    }
-
-    // 2단계: 브라우저 기본 음성
-    const finishSynth = () => {
-      if (cancelled) return
-      if (!useSynth || !isSynthSupported()) return finishSilent()
-      speaking = speakLine(line)
-      speaking.promise.then((ok) => {
-        if (cancelled) return
-        if (ok) resolve('spoken')
-        else finishSilent()
+  const promise = (async () => {
+    // 4단계: 무음 + 자막 타이밍
+    const silent = () =>
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve(cancelled ? 'cancelled' : 'silent'), estimateDuration(line.text))
       })
-    }
 
-    if (missingCache.has(url)) {
-      finishSynth()
-      return
-    }
+    if (!useSynth) return silent()
 
     // 1단계: 녹음 파일
-    audio = new Audio(url)
-    audio.preload = 'auto'
-
-    const fallback = () => {
-      missingCache.add(url)
-      audio = null
-      finishSynth()
+    await ensureManifest()
+    if (cancelled) return 'cancelled'
+    const fileUrl = resolveVoiceUrl(line, missionId, index)
+    if (fileUrl) {
+      inner = playAudio(fileUrl)
+      if (await inner.promise) return 'played'
+      if (cancelled) return 'cancelled'
     }
 
-    audio.onerror = fallback
-    audio.onended = () => {
-      if (!cancelled) resolve('played')
+    // 2단계: 서버 TTS (키가 있을 때만 켜져 있다)
+    ensureProbe()
+    if (ttsStatus().state === 'on') {
+      inner = playViaServer(line.text, character)
+      if (await inner.promise) return 'played'
+      if (cancelled) return 'cancelled'
     }
 
-    // 파일이 준비되면 재생, 400ms 안에 응답이 없으면 다음 단계로 넘어간다.
-    const guard = setTimeout(() => {
-      if (audio && audio.readyState === 0) fallback()
-    }, 400)
-
-    audio.oncanplaythrough = () => {
-      clearTimeout(guard)
-      if (cancelled) return
-      audio.play().catch(fallback)
+    // 3단계: 브라우저 내장 음성 — 기본 경로
+    if (isSynthSupported()) {
+      inner = speak(line.text, { character, roster, speed })
+      if (await inner.promise) return 'spoken'
+      if (cancelled) return 'cancelled'
     }
-  })
+
+    return silent()
+  })()
 
   return {
     promise,
     cancel() {
       cancelled = true
-      if (timer) clearTimeout(timer)
-      speaking?.cancel()
-      if (audio) {
-        audio.pause()
-        audio = null
-      }
+      clearTimeout(timer)
+      inner?.cancel()
     },
   }
 }
 
-/** 여러 줄을 순차 재생. onLine 콜백으로 자막을 갱신한다. */
+/* ── 여러 줄 순차 재생 ──────────────────────────────────────────── */
+
+/**
+ * onLine 콜백으로 자막을 갱신하면서 대사를 차례로 읽는다.
+ * @returns {Function} 중단 함수
+ */
 export function playSequence(
   lines,
-  { missionId, onLine, onDone, gap = 420, useSynth = true } = {},
+  { missionId, onLine, onDone, gap = 380, useSynth = true, roster, speed = 1 } = {},
 ) {
   let cancelled = false
   let current = null
@@ -219,7 +227,7 @@ export function playSequence(
       }
 
       onLine?.(line, i)
-      current = playLine(line, { missionId, index: i, useSynth })
+      current = playLine(line, { missionId, index: i, useSynth, roster, speed })
       await current.promise
       if (cancelled) return
 
@@ -235,6 +243,7 @@ export function playSequence(
   return () => {
     cancelled = true
     current?.cancel()
-    if (gapTimer) clearTimeout(gapTimer)
+    clearTimeout(gapTimer)
+    stopAll()
   }
 }

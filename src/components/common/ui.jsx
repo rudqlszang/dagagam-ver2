@@ -65,6 +65,7 @@ export function Chip({ children, className = '', tone = 'paper' }) {
     mint: 'bg-mint-soft text-mint-deep',
     sun: 'bg-sun-soft text-sun-deep',
     grape: 'bg-grape-soft text-grape-deep',
+    berry: 'bg-berry-soft text-berry-deep',
   }
   return (
     <span
@@ -104,6 +105,7 @@ export function ProgressBar({ value, tone = 'brand', className = '' }) {
     mint: 'bg-mint',
     sun: 'bg-sun',
     grape: 'bg-grape',
+    berry: 'bg-berry',
   }
   return (
     <div className={`h-2.5 w-full overflow-hidden rounded-full bg-black/6 ${className}`}>
@@ -122,6 +124,7 @@ export function StatTile({ label, value, unit, tone = 'brand', emoji }) {
     mint: 'bg-mint-soft text-mint-deep',
     sun: 'bg-sun-soft text-sun-deep',
     grape: 'bg-grape-soft text-grape-deep',
+    berry: 'bg-berry-soft text-berry-deep',
   }
   return (
     <div className={`flex-1 rounded-2xl px-3 py-3 text-center ${tones[tone]}`}>

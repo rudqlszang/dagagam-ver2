@@ -3,7 +3,7 @@ import Avatar from '../common/Avatar'
 /**
  * 셋이 둘러앉아 대화하는 무대
  *  ┌──────────────────┐
- *  │  민준      서연   │   ← AI 친구 둘
+ *  │  짝꿍     함께    │   ← 아이가 고른 AI 친구 둘 (store/useStore의 useCast)
  *  │        나         │   ← 사용자
  *  └──────────────────┘
  *

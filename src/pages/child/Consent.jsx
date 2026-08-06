@@ -5,6 +5,7 @@ import { Button } from '../../components/common/ui'
 import Icon from '../../components/common/Icon'
 import Avatar from '../../components/common/Avatar'
 import { userAvatarUrl } from '../../mock/characters'
+import { chatStatus, ensureProbe } from '../../lib/chatClient'
 
 const AGREEMENTS = [
   {
@@ -41,6 +42,16 @@ export default function Consent() {
   const [checked, setChecked] = useState({})
   const [name, setName] = useState(nickname)
   const [submitted, setSubmitted] = useState(false)
+
+  /**
+   * 대화가 어디서 만들어지는지에 따라 안내 문구가 달라져야 한다.
+   * 기본(무료) 모드는 기기 안에서 끝나지만, 서버에 AI 키가 있으면 아이가 한 말이
+   * 실제로 AI 서버로 전달된다. 보호자 동의 화면에서 이걸 숨기면 안 된다.
+   */
+  const [aiMode, setAiMode] = useState(chatStatus().state === 'on')
+  useEffect(() => {
+    ensureProbe().then(() => setAiMode(chatStatus().state === 'on'))
+  }, [])
 
   const allRequired = AGREEMENTS.filter((a) => a.required).every((a) => checked[a.id])
   const allChecked = AGREEMENTS.every((a) => checked[a.id])
@@ -153,8 +164,19 @@ export default function Consent() {
         </div>
 
         <p className="mt-4 rounded-2xl bg-white/60 p-3.5 text-[11.5px] leading-relaxed text-ink-soft ring-1 ring-black/5">
-          🔒 이 프로토타입은 서버로 아무것도 보내지 않고, 아무것도 저장하지 않아요.
-          창을 새로고침하면 모든 기록이 사라지고 처음 화면부터 다시 시작합니다.
+          {aiMode ? (
+            <>
+              🔒 아이가 한 말은 친구의 대답을 만들기 위해 <b className="text-ink">AI 서버로
+              전달</b>됩니다. 음성 파일은 보내지 않고, 글자로 바뀐 내용만 전달돼요.
+              대화 기록은 이 기기에만 남고 새로고침하면 사라집니다.
+            </>
+          ) : (
+            <>
+              🔒 지금은 대화가 이 기기 안에서만 만들어져요. 아이가 한 말은 밖으로
+              나가지 않습니다. 창을 새로고침하면 대화 기록은 사라지고, 아이가 고른
+              친구와 설정만 이 기기에 남습니다.
+            </>
+          )}
         </p>
       </div>
 

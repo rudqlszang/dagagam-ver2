@@ -1,7 +1,7 @@
 {
   "name": "dagagam",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,6 +12,7 @@
     "deploy": "gh-pages -d dist -t --dotfiles"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.115.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",

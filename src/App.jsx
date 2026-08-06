@@ -9,6 +9,8 @@ import ChildHome from './pages/child/ChildHome'
 import Conversation from './pages/child/Conversation'
 import Summary from './pages/child/Summary'
 import MyPage from './pages/child/MyPage'
+import FriendPicker from './pages/child/FriendPicker'
+import FriendMaker from './pages/child/FriendMaker'
 import ParentDashboard from './pages/parent/ParentDashboard'
 import ParentNotices from './pages/parent/ParentNotices'
 import ParentTranscripts from './pages/parent/ParentTranscripts'
@@ -64,6 +66,22 @@ export default function App() {
             }
           />
           <Route path="/child/summary" element={<Summary />} />
+          <Route
+            path="/child/friends"
+            element={
+              <RequireConsent>
+                <FriendPicker />
+              </RequireConsent>
+            }
+          />
+          <Route
+            path="/child/friends/new"
+            element={
+              <RequireConsent>
+                <FriendMaker />
+              </RequireConsent>
+            }
+          />
           <Route
             path="/child/me"
             element={

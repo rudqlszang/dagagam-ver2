@@ -102,4 +102,10 @@ export const ACCENT_STYLES = {
     solid: 'bg-grape',
     ring: 'ring-grape/30',
   },
+  berry: {
+    bg: 'bg-berry-soft',
+    fg: 'text-berry-deep',
+    solid: 'bg-berry',
+    ring: 'ring-berry/30',
+  },
 }

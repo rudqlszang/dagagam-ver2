@@ -2,9 +2,9 @@ import { useNavigate } from 'react-router-dom'
 import Screen from '../../components/common/Screen'
 import Avatar from '../../components/common/Avatar'
 import { Button, Card, ProgressBar, StatTile } from '../../components/common/ui'
-import { CHARACTER_LIST, userAvatarUrl } from '../../mock/characters'
+import { userAvatarUrl } from '../../mock/characters'
 import { getWord } from '../../mock/vocabulary'
-import { useBadges, useStore } from '../../store/useStore'
+import { useBadges, useFriendRoster, useStore } from '../../store/useStore'
 
 const ACCENT_BG = {
   brand: 'bg-brand-soft',
@@ -25,7 +25,17 @@ export default function MyPage() {
   const navigate = useNavigate()
   const nickname = useStore((s) => s.nickname)
   const affinity = useStore((s) => s.affinity)
+  const friendId = useStore((s) => s.friendId)
+  const roster = useFriendRoster()
   const { badges, earnedCount, stats } = useBadges()
+
+  // 한 번이라도 이야기해 본 친구를 위로 — 아직 안 만난 친구는 아래에
+  const friends = [...roster].sort(
+    (a, b) =>
+      (b.id === friendId ? 1000 : 0) -
+      (a.id === friendId ? 1000 : 0) +
+      ((affinity[b.id] ?? 0) - (affinity[a.id] ?? 0)),
+  )
 
   const words = stats.words.map(getWord).filter(Boolean)
 
@@ -55,22 +65,39 @@ export default function MyPage() {
       </div>
 
       {/* 친밀도 */}
-      <h2 className="mb-2.5 mt-6 px-1 text-[15px] font-bold text-ink">친구와의 친밀도</h2>
+      <div className="mb-2.5 mt-6 flex items-end justify-between px-1">
+        <h2 className="text-[15px] font-bold text-ink">친구와의 친밀도</h2>
+        <button
+          onClick={() => navigate('/child/friends')}
+          className="text-[11.5px] font-semibold text-brand-deep"
+        >
+          친구 바꾸기
+        </button>
+      </div>
       <div className="space-y-2.5">
-        {CHARACTER_LIST.map((c) => {
-          const v = affinity[c.id]
+        {friends.map((c) => {
+          const v = affinity[c.id] ?? 0
           const label = affinityLabel(v)
           return (
             <Card key={c.id} className="flex items-center gap-3">
               <Avatar src={c.avatarUrl} name={c.name} size={48} />
               <div className="min-w-0 flex-1">
                 <div className="mb-1.5 flex items-baseline justify-between gap-2">
-                  <span className="text-[14.5px] font-extrabold text-ink">{c.name}</span>
+                  <span className="flex min-w-0 items-baseline gap-1.5">
+                    <span className="truncate text-[14.5px] font-extrabold text-ink">
+                      {c.emoji} {c.name}
+                    </span>
+                    {c.id === friendId && (
+                      <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[9.5px] font-bold ${c.theme.chip}`}>
+                        짝꿍
+                      </span>
+                    )}
+                  </span>
                   <span className="shrink-0 text-[11.5px] font-bold text-ink-soft">
                     {label.emoji} {label.text}
                   </span>
                 </div>
-                <ProgressBar value={v} tone={c.id === 'minjun' ? 'brand' : 'coral'} />
+                <ProgressBar value={v} tone={c.accent} />
                 <p className="mt-1.5 truncate text-[11.5px] text-ink-faint">{c.tagline}</p>
               </div>
             </Card>

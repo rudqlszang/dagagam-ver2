@@ -1,13 +1,10 @@
-# 다가감 (Dagagam)
+# 다가감 (Dagagam) — ver2
 
 한국으로 이주한 다문화 가정의 초등학생 자녀가 **한국 학교 생활과 문화에 적응**하도록 돕는 AI 서비스 프로토타입.
 
-아이는 AI 친구 두 명과 **음성으로 대화**하며 학교에서 쓰는 말을 연습하고,
+아이는 **자기가 고른 AI 친구**와 음성으로 대화하며 학교에서 쓰는 말을 연습하고,
 부모님은 아이의 성장을 **모국어로** 확인하고, 선생님은 수업자료와 알림장을
 **쉬운 한국어 · 모국어로** 전달한다.
-
-**▶ 바로 체험하기 : https://rudqlszang.github.io/dagagam/**
-(로그인 없이 링크만 열면 됩니다)
 
 ```bash
 npm install
@@ -15,8 +12,25 @@ npm run dev      # http://localhost:5173
 npm run deploy   # GitHub Pages 재배포
 ```
 
+> **API 키가 하나도 없어도 앱은 처음부터 끝까지 동작합니다.** 대화는 준비된 대화
+> 트리로, 목소리는 브라우저 내장 한국어 음성으로 돌아갑니다. 비용 0원.
+> 키를 넣으면 그 부분만 더 좋아집니다 → [더 좋게 만들기](#더-좋게-만들기-전부-선택)
+
 > 음성 인식은 **크롬(Chrome) 또는 엣지(Edge)** 에서 동작합니다.
 > 다른 브라우저에서는 안내 문구가 뜨고, "글자로 말하기"로 대화를 이어갈 수 있습니다.
+> 목소리는 **엣지(Edge)에서 가장 자연스럽습니다** (신경망 음성이 기본 탑재).
+
+---
+
+## ver1에서 달라진 것
+
+| | ver1 | ver2 |
+| --- | --- | --- |
+| AI 친구 | 민준 · 서연 **고정 2명** | **기본 6명 + 직접 만들기** — 아이가 고른다 |
+| 친구 만들기 | 없음 | 이름 · 색 · 성격 · 좋아하는 것 · **말투 · 목소리**를 아이가 정함 |
+| 목소리 | 아무 한국어 음성 + pitch 조정 (기계음) | **신경망 음성 자동 선택 · 문장 단위 억양 · 캐릭터별 다른 목소리** |
+| 대화 생성 | 스크립트 매칭만 | 스크립트(기본) + **실제 Claude 연동(선택)** |
+| 저장 | 전부 휘발 | 고른 친구 · 만든 친구 · 설정은 기기에 저장 |
 
 ---
 
@@ -26,9 +40,6 @@ npm run deploy   # GitHub Pages 재배포
 회원가입도, 로그인도 없다. 대신 **연결 코드**(기본값 `DAGA-2914`) 하나로
 세 화면이 같은 데이터를 본다.
 
-**아무것도 저장하지 않는다.** 새로고침하거나 다른 사람이 링크를 열면
-언제나 같은 초기 화면에서 시작한다 (체험용 프로토타입이라 의도한 동작).
-
 ```
         아이 화면 ──── 대화를 마치면 ────┐
                                         ▼
@@ -36,6 +47,10 @@ npm run deploy   # GitHub Pages 재배포
                                         ▲
         교사 화면 ──── 알림장을 보내면 ──┘ ────▶ 부모 화면에 즉시 도착
 ```
+
+**대화 기록·알림장은 메모리에만 있다.** 새로고침하면 초기 상태로 돌아간다.
+다만 ver2부터 **아이가 직접 만든 것**(닉네임 · 고른 친구 · 만든 친구 · 설정)은
+`localStorage`에 남는다. 애써 만든 친구가 새로고침에 사라지면 안 되기 때문이다.
 
 세 역할은 하단 **"역할 전환"** 버튼으로 언제든 오갈 수 있다.
 연동을 확인해 보려면:
@@ -54,21 +69,22 @@ npm run deploy   # GitHub Pages 재배포
 | 경로 | 화면 | 내용 |
 | --- | --- | --- |
 | `/child/consent` | 보호자 동의 | 음성 사용 · 기록 열람 동의, 닉네임 설정 |
-| `/child` | 홈 | 대화 미션 6종, 최근 대화 이어하기 |
+| `/child` | 홈 | 대화 미션 6종, 최근 대화 이어하기, 설정(목소리 속도·자막) |
+| `/child/friends` | **친구 고르기** | 친구 6명 + 만든 친구 중 짝꿍 선택, 목소리 미리 듣기 |
+| `/child/friends/new` | **나만의 친구 만들기** | 이름·색·성격·좋아하는 것·말투·목소리·배경 |
 | `/child/talk/:missionId` | **음성 대화** | 핵심 기능 |
 | `/child/summary` | 대화 요약 | 발화 횟수 · 새 단어 · 참여도 · 친밀도 |
-| `/child/me` | 마이페이지 | 뱃지 모음, 캐릭터 친밀도 게이지 |
+| `/child/me` | 마이페이지 | 뱃지 모음, 친구별 친밀도 게이지 |
 
 **음성 대화 화면**이 이 서비스의 핵심이다. 채팅 UI가 아니라, 셋이 둘러앉아
 이야기하는 장면으로 구성했다.
 
-- 사용자 아바타 1개 + AI 친구 아바타 2개(민준 · 서연)를 삼각 구도로 배치
+- 사용자 아바타 1개 + **아이가 고른 AI 친구 2명**을 삼각 구도로 배치
 - **말하는 중** 표현은 입모양 애니메이션 대신 **아바타 확대 + 테두리 펄스 글로우**
 - 하단에는 큼직한 마이크 버튼 하나 — **꾹 누르고 말하는** 방식
 - 아이가 말하면 → 실시간 자막 → 한 친구가 반응 → 잠깐 텀을 두고 다른 친구가
   맞장구/추가 질문 (실제 3자 대화 템포)
 - 어려운 말이 나오면 **"쉬운 설명 카드"** 가 화면 위로 떠오른다
-- 실시간 자막은 설정에서 켜고 끌 수 있다
 - 마이크가 안 될 때를 위한 **"글자로 말하기"** 폴백 버튼
 
 ### 2. 부모 화면
@@ -89,100 +105,141 @@ npm run deploy   # GitHub Pages 재배포
 
 ---
 
+## 목소리는 어떻게 자연스러워졌나 (무료)
+
+유료 TTS 없이, 같은 Web Speech API로 네 가지를 바꿨다. (`src/lib/voiceEngine.js`)
+
+1. **음성 고르기** — 브라우저가 가진 한국어 음성을 이름 패턴으로 점수화해서
+   `Natural` / `Neural` / `Online` 계열을 우선 고른다. 엣지의 SunHi·InJoon,
+   크롬의 Google 한국의, macOS의 Yuna 같은 것들이다.
+   캐릭터마다 **다른 음성을 배정**해서 목소리가 겹치지 않는다.
+2. **문장 쪼개기** — 긴 대사를 통째로 넘기면 억양이 뭉개지고, 크롬은 15초쯤에서
+   말을 끊어 먹는다. 문장 단위로 잘라 차례로 읽고 사이에 숨을 준다.
+3. **억양** — 물음표면 끝을 올리고, 느낌표면 조금 빠르고 높게, 쉼표면 느리게.
+   같은 대사를 반복해도 미세하게 달라지도록 흔들어 준다.
+4. **버그 우회** — `onend`가 안 오는 브라우저, 탭 전환 시 멈추는 크롬,
+   사용자 제스처 전에는 소리가 안 나는 iOS를 각각 막았다.
+
+지금 브라우저가 어느 등급인지는 **홈 → 설정 → 목소리 상태**에서 확인할 수 있다.
+
+---
+
+## 더 좋게 만들기 (전부 선택)
+
+`.env.example`를 `.env`로 복사하고 원하는 것만 채우면 된다.
+키는 **서버(`api/`)에서만** 읽히고 브라우저 번들에는 들어가지 않는다.
+아무것도 안 채우면 앱은 지금처럼 무료로 돌아간다.
+
+### 실제 Claude로 대화하기
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+넣는 순간 `/api/chat`이 켜지고, 스크립트 대신 Claude가 **아이가 고른 캐릭터의
+페르소나**로 직접 대답한다. 아이가 만든 친구의 성격·말투·배경이 그대로
+시스템 프롬프트로 들어간다.
+
+7초 안에 응답이 없거나 실패하면 **자동으로 스크립트로 되돌아간다.**
+아이를 기다리게 두지 않는 게 우선이다.
+
+### 성우급 TTS 쓰기
+
+셋 중 아무거나 하나:
+
+```bash
+GOOGLE_TTS_API_KEY=...     # 한국어 품질이 가장 안정적
+OPENAI_API_KEY=...
+ELEVENLABS_API_KEY=...
+```
+
+`/api/tts`가 켜지면 브라우저 음성 대신 이쪽을 쓴다. 실패하면 브라우저 음성으로 내려간다.
+
+### 성우 녹음 파일 쓰기
+
+`public/voice/manifest.json`에 파일 목록을 넣으면 최우선으로 재생된다.
+자세한 규칙은 [`public/voice/README.md`](public/voice/README.md).
+
+### 재생 우선순위
+
+```
+① 성우 녹음 파일        public/voice/…      (manifest.json 있을 때)
+② 서버 TTS API          /api/tts            (키 있을 때)
+③ 브라우저 내장 음성    voiceEngine.js      ← 기본 · 무료
+④ 무음 + 자막 타이밍
+```
+
+---
+
 ## 폴더 구조
 
 ```
+api/                            ★ 선택 기능 — 키 없으면 501을 돌려주고 앱은 무료 모드로
+├─ chat.js                      Claude로 캐릭터 대사 생성
+└─ tts.js                       문장 → mp3 (Google / OpenAI / ElevenLabs)
+
 src/
-├─ App.jsx                    라우팅 + 모바일 프레임 + 하단 역할 스위처
-├─ store/useStore.js          zustand 메모리 스토어 (세 역할이 공유, 저장 안 함)
+├─ App.jsx                      라우팅 + 모바일 프레임 + 하단 역할 스위처
+├─ store/useStore.js            zustand 스토어 (대화는 메모리, 친구·설정은 localStorage)
 │
-├─ mock/                      ★ 교체 대상 데이터는 전부 여기에 모여 있다
-│   ├─ characters.js          민준 · 서연 (DiceBear seed, 음성 파일 경로)
-│   ├─ missions.js            대화 미션 6종
-│   ├─ dialogueScripts.js     미션별 대화 트리 + 키워드 매칭 규칙
-│   ├─ vocabulary.js          "쉬운 설명 카드" 단어 사전
-│   ├─ badges.js              뱃지 정의
-│   ├─ roles.js               역할 3종
-│   ├─ parentData.js          부모 대시보드 지표 · 알림장 시드
-│   ├─ teacherData.js         학생 리스트 · 수업자료 변환 mock
-│   └─ translations.js        모국어 요약 문구
+├─ mock/                        ★ 교체 대상 데이터는 전부 여기에 모여 있다
+│   ├─ characters.js            친구 6명 + 커스텀 캐릭터 생성기 + 테마/보이스 프로필
+│   ├─ missions.js              대화 미션 6종
+│   ├─ dialogueScripts.js       미션별 대화 트리 + 키워드 매칭 규칙 (무료 기본 엔진)
+│   ├─ vocabulary.js            "쉬운 설명 카드" 단어 사전
+│   ├─ badges.js                뱃지 정의
+│   ├─ roles.js                 역할 3종
+│   ├─ parentData.js            부모 대시보드 지표 · 알림장 시드
+│   ├─ teacherData.js           학생 리스트 · 수업자료 변환 mock
+│   └─ translations.js          모국어 요약 문구
 │
 ├─ lib/
-│   ├─ speech.js              SpeechRecognition 래퍼 (지원 여부 · 권한 거부 처리)
-│   ├─ voicePlayer.js         녹음 음성 재생기 (파일 없으면 무음 + 자막)
-│   └─ conversationEngine.js  ★★ Claude API 교체 지점
+│   ├─ speech.js                SpeechRecognition 래퍼 (지원 여부 · 권한 거부 처리)
+│   ├─ voiceEngine.js           ★ 무료 자연 음성 엔진 (음성 선택 · 억양 · 버그 우회)
+│   ├─ voicePlayer.js           4단계 재생 폴백 (녹음 → 서버 TTS → 브라우저 → 무음)
+│   ├─ ttsClient.js             /api/tts 클라이언트 (없으면 조용히 비활성)
+│   ├─ chatClient.js            /api/chat 클라이언트 (없으면 조용히 비활성)
+│   ├─ cast.js                  ★ 스크립트의 배역을 아이가 고른 친구로 갈아 끼움
+│   └─ conversationEngine.js    대화 생성 — Claude(선택) + 스크립트(기본)
 │
 ├─ components/  common / child / parent / teacher
 └─ pages/       RoleSelect · child/ · parent/ · teacher/
 ```
 
----
+### `cast.js`가 하는 일
 
-## 나중에 실제 서비스로 바꿀 때
-
-### 1) AI 대화를 Claude API로 교체
-
-`src/lib/conversationEngine.js`의 **`getReplies()` 내부만** 바꾸면 된다.
-화면 코드(`Conversation.jsx`)는 손댈 필요가 없다.
-
-```js
-export async function getReplies({ missionId, beatIndex, userText, history }) {
-  const res = await fetch('/api/chat', {
-    method: 'POST',
-    body: JSON.stringify({ missionId, userText, history }),
-  })
-  const { lines } = await res.json()
-  return { lines, nextBeatIndex: beatIndex + 1, phase: 'beat' }
-}
-```
-
-반환 형식만 지키면 된다:
-
-```js
-lines: [{ by: 'minjun' | 'seoyeon', text: string, word?: string, pause?: number }]
-```
-
-`mock/dialogueScripts.js`는 지우지 말고 **오프라인 폴백**으로 남겨 두면 좋다.
-
-### 2) 성우 녹음 음성 추가
-
-음성은 3단계로 내려간다 (`src/lib/voicePlayer.js`).
-
-1. **성우 녹음 파일** `public/voice/...` — 있으면 최우선
-2. **브라우저 기본 음성**(SpeechSynthesis) — 파일이 아직 없을 때의 임시 목소리.
-   민준·서연이 서로 다른 pitch/rate를 쓴다 (`mock/characters.js`의 `tts`)
-3. **무음 + 자막 타이밍** — 설정에서 "친구 목소리 듣기"를 끄거나 TTS를 못 쓸 때
-
-`public/voice/` 에 파일을 넣기만 하면 코드 수정 없이 1단계로 자동 승격된다.
+ver1의 대화 스크립트(680줄)는 화자를 `minjun` / `seoyeon` 두 값으로 하드코딩해 뒀다.
+ver2는 친구가 6명 + 직접 만든 친구까지 있으므로, 그 두 값을 **배역 슬롯**으로 보고
+런타임에 매핑한다. 대사 안의 이름(`"나는 서연이야"`)도 조사까지 맞춰 바꿔 준다.
 
 ```
-public/voice/minjun/group-project-01.mp3
-public/voice/seoyeon/first-day-03.mp3
-        └ 캐릭터    └ 미션 id  └ 대사 순번(01부터)
+'minjun'  슬롯 → 아이가 고른 짝꿍
+'seoyeon' 슬롯 → 함께 나오는 친구
+
+"반가워! 나는 서연이야."  →  "반가워! 나는 유나야."   (유나 = 모음 끝 → '이' 제거)
+"난 민준이야."            →  "난 하늘이야."
 ```
 
-파일이 없으면 `voicePlayer.js`가 자동으로 **무음 + 자막 타이밍** 모드로 동작한다.
-개별 대사에 다른 경로를 쓰고 싶으면 스크립트 라인에 `audio: '/voice/...'` 를 넣으면 된다.
-
-### 3) 번역 · 발음 평가
-
-- 번역: `mock/teacherData.js`의 `mockTranslate()` / `mockSimplify()` 를 실제 API 호출로 교체
-- 발음 점수: 현재는 SpeechRecognition의 `confidence` 값을 100점 환산해 쓰고 있다.
-  실제 발음 평가 모델로 바꾸려면 `lib/conversationEngine.js`의 `summarize()`를 수정
+덕분에 스크립트를 한 줄도 건드리지 않고 캐릭터를 늘릴 수 있다.
 
 ---
 
 ## 안전 · 프라이버시 설계
 
 - 아이 화면 최초 진입 시 **보호자 동의 화면** (필수 2 · 선택 1)
+- 동의 화면의 안내 문구는 **실제 동작에 맞춰 바뀐다.** 무료 모드에서는 "기기 안에서만",
+  Claude 연동이 켜져 있으면 "AI 서버로 전달됩니다"라고 명시한다.
 - 부모의 **대화 전체 보기**는 프라이버시 안내를 읽고 명시적으로 동의해야 열린다
 - 아이에게도 "부모님이 볼 수 있다"는 사실을 요약 화면에서 알려 준다
 - 교사에게는 **개별 대화 내용이 아니라 요약 지표만** 전달된다
 - 마이크 권한 거부 / 미지원 브라우저 각각에 대한 안내 화면 제공
-- 서버로 아무것도 보내지 않고, 브라우저에도 아무것도 저장하지 않는다.
-  창을 닫거나 새로고침하면 모든 기록이 사라진다.
+- Claude를 붙였을 때의 시스템 프롬프트에 **아동 대상 금지 주제 필터**가 들어 있다
+  (폭력·성적 내용·약물·자해·편견 차단, 개인정보 질문 금지, 힘든 일을 이야기하면
+  믿을 수 있는 어른에게 알리도록 유도) — `api/chat.js`
+- 음성 파일은 어디에도 저장하지 않는다. 글자로 바뀐 내용만 대화에 쓰인다.
 
 ## 기술 스택
 
 React 19 · Vite 8 · Tailwind CSS 4 · react-router-dom 7 · zustand 5 · recharts 3
-· Web Speech API · DiceBear (네트워크 실패 시 이니셜 아바타로 폴백)
+· Web Speech API (인식 + 합성) · DiceBear (네트워크 실패 시 이니셜 아바타로 폴백)
+· `@anthropic-ai/sdk` (선택 기능에서만 사용)

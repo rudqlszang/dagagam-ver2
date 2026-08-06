@@ -17,6 +17,10 @@ const PATHS = {
   sparkle: 'M12 3v4M12 17v4M3 12h4M17 12h4M6.2 6.2l2.8 2.8M15 15l2.8 2.8M17.8 6.2 15 9M9 15l-2.8 2.8',
   play: 'M7 4.5v15l13-7.5z',
   lock: 'M6 10.5h12V21H6zM8.5 10.5V7a3.5 3.5 0 1 1 7 0v3.5',
+  plus: 'M12 5v14M5 12h14',
+  trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
+  volume: 'M4 9.5h3.5L12 5.5v13L7.5 14.5H4zM16 9.2a4 4 0 0 1 0 5.6M18.8 6.6a8 8 0 0 1 0 10.8',
+  wand: 'M4 20 15 9M15.5 4.5 16 3l.5 1.5L18 5l-1.5.5L16 7l-.5-1.5L14 5zM19.5 9.5 20 8l.5 1.5L22 10l-1.5.5L20 12l-.5-1.5L18 10zM13.5 6 17 9.5',
 }
 
 export default function Icon({ name, className = 'h-5 w-5', strokeWidth = 2, fill = 'none' }) {

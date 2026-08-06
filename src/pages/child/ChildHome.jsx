@@ -1,12 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ACCENT_STYLES, MISSIONS } from '../../mock/missions'
-import { CHARACTER_LIST, userAvatarUrl } from '../../mock/characters'
-import { useStore } from '../../store/useStore'
+import { userAvatarUrl } from '../../mock/characters'
+import { useCast, useStore } from '../../store/useStore'
 import Avatar from '../../components/common/Avatar'
 import Icon from '../../components/common/Icon'
 import { SectionTitle, Sheet, Toggle } from '../../components/common/ui'
 import { isSpeechSupported } from '../../lib/speech'
+import {
+  VOICE_TIER_LABEL,
+  getVoiceReport,
+  previewVoice,
+  primeVoices,
+  stopAll,
+  unlockAudio,
+} from '../../lib/voiceEngine'
+
+const SPEED_LABEL = (v) => (v <= 0.85 ? '천천히' : v >= 1.12 ? '빠르게' : '보통')
 
 export default function ChildHome() {
   const navigate = useNavigate()
@@ -14,11 +24,39 @@ export default function ChildHome() {
   const sessions = useStore((s) => s.sessions)
   const settings = useStore((s) => s.settings)
   const updateSettings = useStore((s) => s.updateSettings)
+  const cast = useCast()
 
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [report, setReport] = useState(() => getVoiceReport())
+  const previewRef = useRef(null)
+
   const last = sessions[0]
   const doneIds = new Set(sessions.map((s) => s.missionId))
   const speechOk = isSpeechSupported()
+  const tier = VOICE_TIER_LABEL[report.tier]
+
+  useEffect(() => {
+    primeVoices().then(() => setReport(getVoiceReport()))
+    return () => {
+      previewRef.current?.cancel()
+      stopAll()
+    }
+  }, [])
+
+  /** 미션 시작 — 이 탭이 모바일 오디오를 여는 "사용자 제스처"가 된다 */
+  const startMission = (id) => {
+    unlockAudio()
+    navigate(`/child/talk/${id}`)
+  }
+
+  const testVoice = () => {
+    unlockAudio()
+    previewRef.current?.cancel()
+    previewRef.current = previewVoice(cast.primary, {
+      speed: settings.voiceSpeed,
+      roster: cast.list,
+    })
+  }
 
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-cream no-scrollbar">
@@ -42,10 +80,13 @@ export default function ChildHome() {
           </button>
         </div>
 
-        {/* 오늘의 친구들 */}
-        <div className="relative mt-4 flex items-center gap-2 rounded-2xl bg-white/70 px-3 py-2.5 ring-1 ring-black/5">
+        {/* 오늘의 친구들 — 누르면 친구를 바꿀 수 있다 */}
+        <button
+          onClick={() => navigate('/child/friends')}
+          className="relative mt-4 flex w-full items-center gap-2 rounded-2xl bg-white/80 px-3 py-2.5 text-left ring-1 ring-black/5 active:bg-white"
+        >
           <div className="flex -space-x-2">
-            {CHARACTER_LIST.map((c) => (
+            {cast.list.map((c) => (
               <Avatar
                 key={c.id}
                 src={c.avatarUrl}
@@ -55,11 +96,14 @@ export default function ChildHome() {
               />
             ))}
           </div>
-          <p className="flex-1 text-[12.5px] font-semibold text-ink">
-            민준이와 서연이가 기다리고 있어요
-          </p>
-          <span className="flex h-2 w-2 rounded-full bg-mint" />
-        </div>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[12.5px] font-semibold text-ink">
+              {cast.primary.name}이랑 {cast.partner.name}이가 기다리고 있어요
+            </span>
+            <span className="block text-[11px] text-ink-soft">눌러서 친구 바꾸기</span>
+          </span>
+          <span className="flex h-2 w-2 shrink-0 rounded-full bg-mint" />
+        </button>
       </div>
 
       {/* 브라우저 미지원 안내 */}
@@ -76,7 +120,7 @@ export default function ChildHome() {
       {last && (
         <div className="px-4 pb-1">
           <button
-            onClick={() => navigate(`/child/talk/${last.missionId}`)}
+            onClick={() => startMission(last.missionId)}
             className="flex w-full items-center gap-3 rounded-3xl bg-gradient-to-r from-brand to-brand-deep p-4 text-left text-white shadow-lg shadow-brand/25 active:scale-[0.99]"
           >
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 text-xl">
@@ -114,7 +158,7 @@ export default function ChildHome() {
             return (
               <button
                 key={m.id}
-                onClick={() => navigate(`/child/talk/${m.id}`)}
+                onClick={() => startMission(m.id)}
                 style={{ animationDelay: `${i * 45}ms` }}
                 className="anim-slide-up flex w-full items-center gap-3.5 rounded-3xl bg-white p-3.5 text-left shadow-sm ring-1 ring-black/5 transition-transform active:scale-[0.98]"
               >
@@ -158,8 +202,41 @@ export default function ChildHome() {
             checked={settings.voice}
             onChange={(v) => updateSettings({ voice: v })}
             label="친구 목소리 듣기"
-            desc="민준이와 서연이가 소리 내어 말해요"
+            desc={`${cast.primary.name}이와 ${cast.partner.name}이가 소리 내어 말해요`}
           />
+
+          {/* 말하기 속도 */}
+          <div className="py-3">
+            <div className="flex items-baseline justify-between">
+              <span className="text-[14px] font-semibold text-ink">말하기 속도</span>
+              <span className="text-[12px] font-bold text-ink-soft">
+                {SPEED_LABEL(settings.voiceSpeed)} · {settings.voiceSpeed.toFixed(2)}배
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0.75"
+              max="1.2"
+              step="0.05"
+              value={settings.voiceSpeed}
+              disabled={!settings.voice}
+              onChange={(e) => updateSettings({ voiceSpeed: Number(e.target.value) })}
+              className="mt-2.5 w-full accent-brand disabled:opacity-40"
+            />
+            <div className="mt-1 flex justify-between text-[11px] text-ink-faint">
+              <span>🐢 천천히</span>
+              <span>🐇 빠르게</span>
+            </div>
+            <button
+              onClick={testVoice}
+              disabled={!settings.voice}
+              className="mt-2.5 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-paper text-[13px] font-bold text-ink active:bg-black/5 disabled:opacity-40"
+            >
+              <Icon name="volume" className="h-4 w-4" />
+              지금 목소리 들어보기
+            </button>
+          </div>
+
           <Toggle
             checked={settings.subtitles}
             onChange={(v) => updateSettings({ subtitles: v })}
@@ -173,9 +250,20 @@ export default function ChildHome() {
             desc="모르는 말이 나오면 쉬운 뜻을 살짝 알려 줘요"
           />
         </div>
+
+        {/* 목소리 품질 안내 */}
         <div className="mt-4 rounded-2xl bg-paper p-3.5 text-[11.5px] leading-relaxed text-ink-soft">
-          🔊 친구들 목소리는 성우가 녹음한 파일로 들려줄 예정이에요. 지금은 파일이
-          없어서 소리 없이 자막만 나옵니다.
+          <b className="text-ink">
+            {tier.emoji} {tier.text}
+          </b>
+          <br />
+          {tier.desc}
+          {report.best && (
+            <>
+              <br />
+              <span className="text-ink-faint">지금 쓰는 음성: {report.best.name}</span>
+            </>
+          )}
         </div>
       </Sheet>
     </div>

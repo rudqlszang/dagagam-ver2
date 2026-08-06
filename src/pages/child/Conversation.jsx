@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { CHARACTER_LIST, userAvatarUrl } from '../../mock/characters'
+import { userAvatarUrl } from '../../mock/characters'
 import { getMission } from '../../mock/missions'
-import { useStore } from '../../store/useStore'
+import { useCast, useStore } from '../../store/useStore'
 import {
   createSession,
   extractWordCard,
@@ -11,6 +11,7 @@ import {
   summarize,
 } from '../../lib/conversationEngine'
 import { playSequence } from '../../lib/voicePlayer'
+import { unlockAudio } from '../../lib/voiceEngine'
 import { createRecognizer, isSpeechSupported, queryMicPermission } from '../../lib/speech'
 import ConversationStage from '../../components/child/ConversationStage'
 import MicButton from '../../components/child/MicButton'
@@ -30,6 +31,11 @@ export default function Conversation() {
   const subtitlesOn = useStore((s) => s.settings.subtitles)
   const updateSettings = useStore((s) => s.updateSettings)
   const saveSession = useStore((s) => s.saveSession)
+
+  /* 아이가 고른 친구 두 명. 스크립트의 배역은 lib/cast.js가 여기에 맞춰 준다 */
+  const cast = useCast()
+  const castRef = useRef(cast)
+  castRef.current = cast
 
   /* status: 'speaking' | 'idle' | 'listening' | 'thinking' | 'done' */
   const [status, setStatusState] = useState('speaking')
@@ -55,7 +61,7 @@ export default function Conversation() {
   const aliveRef = useRef(true)
 
   if (sessionRef.current === null) {
-    sessionRef.current = createSession(missionId)
+    sessionRef.current = createSession(missionId, cast)
   }
 
   /* 콜백 안에서 최신 상태를 읽어야 해서 ref와 함께 관리한다 */
@@ -85,9 +91,12 @@ export default function Conversation() {
     (lines, onDone) => {
       setStatus('speaking')
       stopPlaybackRef.current?.()
+      const settings = useStore.getState().settings
       stopPlaybackRef.current = playSequence(lines, {
         missionId,
-        useSynth: useStore.getState().settings.voice,
+        useSynth: settings.voice,
+        speed: settings.voiceSpeed ?? 1,
+        roster: castRef.current.list,
         onLine: (line) => {
           const subsOn = useStore.getState().settings.subtitles
           setSpeakingId(line.by)
@@ -141,16 +150,21 @@ export default function Conversation() {
         missionId,
         beatIndex: beatRef.current,
         userText: clean,
+        cast: castRef.current,
+        session: sessionRef.current,
+        nickname,
       })
       if (!aliveRef.current) return
 
       beatRef.current = res.nextBeatIndex
+      // 한 번이라도 실제 AI가 답했으면 이 세션은 'ai'로 남긴다
+      if (res.source === 'ai') sessionRef.current.source = 'ai'
       playLines(res.lines, () => {
         if (res.phase === 'closing') setStatus('done')
         else setStatus('idle')
       })
     },
-    [missionId, playLines, showWordCard, setStatus],
+    [missionId, nickname, playLines, showWordCard, setStatus],
   )
 
   /* ── 마이크 ─────────────────────────────────────── */
@@ -202,11 +216,13 @@ export default function Conversation() {
     aliveRef.current = true
     let cancelled = false
 
-    sessionRef.current = createSession(missionId)
+    // 미션 카드를 누르고 들어온 직후라 제스처가 살아 있다 — 지금 오디오를 열어 둔다
+    unlockAudio()
+    sessionRef.current = createSession(missionId, castRef.current)
     beatRef.current = 0
     setStatus('speaking')
 
-    getOpening(missionId).then(({ lines }) => {
+    getOpening(missionId, { cast: castRef.current }).then(({ lines }) => {
       if (cancelled) return
       playLines(lines, () => setStatus('idle'))
     })
@@ -305,7 +321,7 @@ export default function Conversation() {
       {/* 무대 */}
       <div className="relative z-10 flex min-h-0 flex-1 flex-col justify-center">
         <ConversationStage
-          characters={CHARACTER_LIST}
+          characters={cast.list}
           user={{ name: nickname, avatarUrl: userAvatarUrl(nickname) }}
           speakingId={speakingId}
           listening={status === 'listening'}
