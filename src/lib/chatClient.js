@@ -9,7 +9,9 @@
  * ttsClient.js 와 같은 방식으로 "한 번만 물어보고, 안 되면 다시 묻지 않는다".
  */
 
-const ENDPOINT = '/api/chat'
+// GitHub Pages처럼 하위 경로에 배포될 수도 있어서 base를 붙인다.
+// (그래도 정적 호스팅에서는 404가 나고, 앱은 그걸 보고 무료 모드로 간다)
+const ENDPOINT = `${import.meta.env.BASE_URL ?? '/'}api/chat`.replace(/\/{2,}/g, '/')
 
 /** 'unknown' | 'checking' | 'on' | 'off' */
 let state = 'unknown'

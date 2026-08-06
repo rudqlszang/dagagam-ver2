@@ -14,7 +14,8 @@
  * 데모가 끊기는 일은 없다.
  */
 
-const ENDPOINT = '/api/tts'
+// GitHub Pages처럼 하위 경로에 배포될 수도 있어서 base를 붙인다.
+const ENDPOINT = `${import.meta.env.BASE_URL ?? '/'}api/tts`.replace(/\/{2,}/g, '/')
 const CACHE_LIMIT = 40
 
 /** 'unknown' | 'checking' | 'on' | 'off' */
