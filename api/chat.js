@@ -62,12 +62,14 @@ function describeFriend(label, c) {
 }
 
 function buildSystem({ mission, characters, child, classNote }) {
-  return `너는 한국 초등학교 교실을 배경으로 하는 대화 연습 앱의 "AI 친구" 두 명을 동시에 연기한다.
+  const solo = !characters.partner
+
+  return `너는 한국 초등학교 교실을 배경으로 하는 대화 연습 앱의 "AI 친구"${solo ? '' : ' 두 명'}을 연기한다.
 대화 상대는 한국어를 배우는 중인 이주배경 초등학생이다.
 
-[함께 있는 친구들]
+[함께 있는 친구${solo ? '' : '들'}]
 ${describeFriend('primary', characters.primary)}
-${describeFriend('partner', characters.partner)}
+${solo ? '- partner: 없음. 친구는 한 명뿐이니 by는 항상 "primary"로 답한다.' : describeFriend('partner', characters.partner)}
 
 [아이]
 - 이름: ${child?.nickname ?? '친구'}

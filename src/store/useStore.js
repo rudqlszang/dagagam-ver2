@@ -20,7 +20,6 @@ import { SEED_SEND_HISTORY } from '../mock/teacherData'
 import { MISSION_BADGES, MILESTONE_BADGES } from '../mock/badges'
 import {
   BUILTIN_CHARACTERS,
-  defaultPartnerFor,
   getCharacter,
   registerCustomCharacters,
 } from '../mock/characters'
@@ -144,22 +143,23 @@ export const useStore = create((set, get) => ({
 
   /* ── 친구 고르기 / 만들기 ───────────────────── */
 
-  /** 짝꿍을 바꾼다. 짝꿍과 겹치면 함께 나오는 친구도 자동으로 옮긴다. */
+  /** 짝꿍을 바꾼다. 지금 함께 나오는 친구를 고르면 둘의 자리를 맞바꾼다. */
   selectFriend: (friendId) => {
     set((s) => {
-      const partnerId =
-        s.partnerId === friendId ? defaultPartnerFor(friendId) : s.partnerId
+      const partnerId = s.partnerId === friendId ? s.friendId : s.partnerId
       const affinity = { ...s.affinity }
       if (affinity[friendId] == null) affinity[friendId] = 0
-      if (affinity[partnerId] == null) affinity[partnerId] = 0
+      if (partnerId && affinity[partnerId] == null) affinity[partnerId] = 0
       return { friendId, partnerId, affinity }
     })
     persist(get())
   },
 
+  /** 함께 나올 친구를 정한다. null을 넣으면 짝꿍 혼자 나온다. */
   setPartner: (partnerId) => {
     set((s) => {
       if (partnerId === s.friendId) return {}
+      if (!partnerId) return { partnerId: null }
       const affinity = { ...s.affinity }
       if (affinity[partnerId] == null) affinity[partnerId] = 0
       return { partnerId, affinity }
@@ -175,8 +175,8 @@ export const useStore = create((set, get) => ({
       return {
         customFriends,
         friendId: character.id,
-        partnerId:
-          s.partnerId === character.id ? defaultPartnerFor(character.id) : s.partnerId,
+        // 새로 만든 친구가 짝꿍이 되므로, 그 친구가 옆자리였다면 옆자리는 비운다
+        partnerId: s.partnerId === character.id ? null : s.partnerId,
         affinity: { ...s.affinity, [character.id]: 0 },
       }
     })
@@ -185,22 +185,46 @@ export const useStore = create((set, get) => ({
   },
 
   /**
-   * 온보딩 완료 — 키워드로 만든 친구 두 명을 한꺼번에 확정한다.
-   * 두 명이 항상 짝을 이뤄야 해서 addCustomFriend를 두 번 부르지 않고 따로 둔다.
+   * 온보딩 완료 — 키워드로 만든 친구를 확정한다.
+   * 기본은 한 명이고, 아이가 원하면 그 자리에서 한 명을 더 만들 수 있다.
    */
-  completeOnboarding: (first, second) => {
+  completeOnboarding: (friends) => {
+    const [first, second] = friends
     set((s) => {
-      const customFriends = [...s.customFriends, first, second]
+      const added = second ? [first, second] : [first]
+      const customFriends = [...s.customFriends, ...added]
       registerCustomCharacters(customFriends)
+      const affinity = { ...s.affinity }
+      added.forEach((f) => {
+        affinity[f.id] = 0
+      })
       return {
         customFriends,
         friendId: first.id,
-        partnerId: second.id,
+        partnerId: second?.id ?? null,
         onboarded: true,
-        affinity: { ...s.affinity, [first.id]: 0, [second.id]: 0 },
+        affinity,
       }
     })
     persist(get())
+  },
+
+  /**
+   * 나중에 친구를 한 명 더 만든다.
+   * 아직 혼자였다면 바로 무대에 함께 세우고, 이미 둘이면 목록에만 넣는다.
+   */
+  addFriendFromKeywords: (friend) => {
+    set((s) => {
+      const customFriends = [...s.customFriends, friend]
+      registerCustomCharacters(customFriends)
+      return {
+        customFriends,
+        partnerId: s.partnerId ?? friend.id,
+        affinity: { ...s.affinity, [friend.id]: 0 },
+      }
+    })
+    persist(get())
+    return friend
   },
 
   /** 친구를 처음부터 다시 만들고 싶을 때 (만든 친구는 지우지 않는다) */
@@ -215,8 +239,9 @@ export const useStore = create((set, get) => ({
       registerCustomCharacters(customFriends)
       return {
         customFriends,
-        friendId: s.friendId === id ? 'minjun' : s.friendId,
-        partnerId: s.partnerId === id ? 'seoyeon' : s.partnerId,
+        friendId: s.friendId === id ? (s.partnerId ?? 'minjun') : s.friendId,
+        // 함께 나오던 친구를 지우면 짝꿍 혼자 남는다
+        partnerId: s.partnerId === id || s.friendId === id ? null : s.partnerId,
       }
     })
     persist(get())

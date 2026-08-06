@@ -73,7 +73,8 @@ export async function requestReplies({
         },
         characters: {
           primary: describe(cast.primary),
-          partner: describe(cast.partner),
+          // 친구가 한 명뿐일 수 있다 — 그때는 짝꿍 혼자 말한다
+          partner: cast.partner ? describe(cast.partner) : null,
         },
         child: { nickname },
         classNote: classNote || null,

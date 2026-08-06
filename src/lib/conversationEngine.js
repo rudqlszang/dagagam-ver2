@@ -116,10 +116,10 @@ function scriptReplies({ missionId, beatIndex, userText, cast }) {
 
 /* ── Claude 응답 ────────────────────────────────────────────────── */
 
-/** 서버가 준 primary/partner 표기를 실제 캐릭터 id로 바꾼다 */
+/** 서버가 준 primary/partner 표기를 실제 캐릭터 id로 바꾼다 (혼자면 전부 짝꿍) */
 function attachCast(lines, cast) {
   return lines.map((l) => ({
-    by: l.by === 'partner' ? cast.partner.id : cast.primary.id,
+    by: l.by === 'partner' && cast.partner ? cast.partner.id : cast.primary.id,
     text: l.text,
     word: l.word,
   }))

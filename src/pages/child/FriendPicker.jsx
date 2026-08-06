@@ -202,46 +202,72 @@ export default function FriendPicker() {
         </button>
       </div>
 
-      {/* 키워드로 두 명 다시 만들기 */}
+      {/* 키워드로 친구 한 명 더 만들기 */}
       <button
-        onClick={() => {
-          restartOnboarding()
-          navigate('/child/start')
-        }}
+        onClick={() => navigate('/child/friends/add')}
         className="mt-2.5 flex w-full items-center gap-3 rounded-3xl bg-white p-3.5 text-left shadow-sm ring-1 ring-black/5 active:bg-paper"
       >
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sun-soft text-lg">
-          🎲
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand-deep">
+          <Icon name="plus" className="h-5 w-5" strokeWidth={2.6} />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[14.5px] font-extrabold text-ink">
-            키워드로 두 명 다시 만들기
+            키워드로 친구 한 명 더 만들기
           </span>
           <span className="block text-[11.5px] text-ink-soft">
-            처음처럼 좋아하는 것·성격을 골라서 새로 만들어요
+            좋아하는 것·성격을 고르면 알아서 만들어져요
           </span>
         </span>
         <Icon name="play" className="h-4 w-4 shrink-0 text-ink-faint" />
       </button>
 
+      {/* 처음부터 다시 */}
+      <button
+        onClick={() => {
+          restartOnboarding()
+          navigate('/child/start')
+        }}
+        className="mt-2 w-full py-2 text-[12.5px] font-semibold text-ink-soft"
+      >
+        친구 처음부터 다시 만들기
+      </button>
+
       {/* 함께 나올 친구 */}
       <h2 className="mb-1 mt-6 px-1 text-[15px] font-bold text-ink">함께 나올 친구</h2>
       <p className="mb-2.5 px-1 text-[12px] leading-relaxed text-ink-soft">
-        대화에는 두 명이 나와요. 옆에 같이 앉을 친구예요.
+        옆에 같이 앉을 친구예요. 없어도 짝꿍이랑 둘이서 이야기할 수 있어요.
       </p>
       <button
         onClick={() => setPartnerOpen(true)}
         className="flex w-full items-center gap-3 rounded-3xl bg-white p-3.5 text-left shadow-sm ring-1 ring-black/5 active:bg-paper"
       >
-        <Avatar src={cast.partner.avatarUrl} name={cast.partner.name} size={44} />
-        <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-extrabold text-ink">
-            {cast.partner.emoji} {cast.partner.name}
-          </span>
-          <span className="block truncate text-[11.5px] text-ink-soft">
-            {cast.partner.tagline}
-          </span>
-        </span>
+        {cast.partner ? (
+          <>
+            <Avatar src={cast.partner.avatarUrl} name={cast.partner.name} size={44} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-extrabold text-ink">
+                {cast.partner.emoji} {cast.partner.name}
+              </span>
+              <span className="block truncate text-[11.5px] text-ink-soft">
+                {cast.partner.tagline}
+              </span>
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-paper text-lg">
+              🙂
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-extrabold text-ink">
+                지금은 {cast.primary.name} 혼자예요
+              </span>
+              <span className="block truncate text-[11.5px] text-ink-soft">
+                친구를 더 만들면 같이 나올 수 있어요
+              </span>
+            </span>
+          </>
+        )}
         <Chip tone="paper">바꾸기</Chip>
       </button>
 
@@ -253,6 +279,30 @@ export default function FriendPicker() {
       {/* 짝꿍 고르기 시트 */}
       <Sheet open={partnerOpen} onClose={() => setPartnerOpen(false)} title="함께 나올 친구">
         <div className="space-y-2">
+          {/* 혼자 이야기하기 */}
+          <button
+            onClick={() => {
+              setPartner(null)
+              setPartnerOpen(false)
+            }}
+            className={`flex w-full items-center gap-3 rounded-2xl p-3 text-left ring-1 transition-colors ${
+              partnerId ? 'bg-white ring-black/6 active:bg-paper' : 'bg-paper ring-transparent'
+            }`}
+          >
+            <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full bg-cream text-lg">
+              🙂
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-bold text-ink">
+                {cast.primary.name}이랑 둘이서
+              </span>
+              <span className="block truncate text-[12px] text-ink-soft">
+                친구 한 명하고만 이야기해요
+              </span>
+            </span>
+            {!partnerId && <Icon name="check" className="h-5 w-5 text-brand-deep" />}
+          </button>
+
           {roster
             .filter((c) => c.id !== friendId)
             .map((c) => (

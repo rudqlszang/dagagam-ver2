@@ -31,3 +31,19 @@ export function josa(word, pair) {
 export function withJosa(word, pair) {
   return `${word}${josa(word, pair)}`
 }
+
+/**
+ * 자주 쓰는 조사 쌍.
+ *
+ * '받침있음/받침없음' 순서를 손으로 적다 보면 와/과처럼 헷갈리는 쌍에서
+ * 순서를 뒤집기 쉽다. ("새록와 이야기하기" 같은 문장이 그렇게 나왔다)
+ * 호출부에서는 이 상수만 쓴다.
+ */
+export const JOSA = {
+  SUBJECT: '이/가', // 새록이 / 나래가
+  TOPIC: '은/는', // 새록은 / 나래는
+  OBJECT: '을/를', // 새록을 / 나래를
+  WITH: '과/와', // 새록과 / 나래와
+  AND: '이랑/랑', // 새록이랑 / 나래랑
+  TO: '으로/로', // 새록으로 / 나래로
+}

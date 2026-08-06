@@ -21,19 +21,27 @@ export const SLOTS = ['minjun', 'seoyeon']
 /** 슬롯 이름 → 스크립트 안에 등장하는 한글 이름 */
 const SLOT_NAME = { minjun: '민준', seoyeon: '서연' }
 
+/**
+ * 무대에 세울 친구를 정한다. 친구는 한 명일 수도, 두 명일 수도 있다.
+ *
+ * 아이는 친구 한 명으로 시작하고 원할 때 한 명을 더 만든다. 그래서 partnerId가
+ * 비어 있는 상태(혼자)가 정상이며, 그때는 한 명이 두 배역을 모두 맡는다.
+ */
 export function buildCast(primaryId, partnerId) {
   const primary = getCharacter(primaryId)
-  let partner = getCharacter(partnerId)
-  if (partner.id === primary.id) {
-    // 짝꿍이 같은 캐릭터로 잡히면 기본 친구 중 다른 사람을 세운다
-    partner = getCharacter(primary.id === 'seoyeon' ? 'minjun' : 'seoyeon')
-  }
+
+  // 지운 친구를 가리키고 있으면 getCharacter가 엉뚱한 사람을 돌려주므로 확인한다
+  const resolved = partnerId ? getCharacter(partnerId) : null
+  const partner =
+    resolved && resolved.id === partnerId && resolved.id !== primary.id ? resolved : null
+  const solo = partner === null
 
   return {
     primary,
     partner,
-    list: [primary, partner],
-    bySlot: { minjun: primary, seoyeon: partner },
+    solo,
+    list: solo ? [primary] : [primary, partner],
+    bySlot: { minjun: primary, seoyeon: partner ?? primary },
   }
 }
 
@@ -52,15 +60,36 @@ function fixParticles(text, names) {
   return out
 }
 
-/** 대사 텍스트 안의 옛 이름을 캐스팅된 이름으로 동시에 치환한다 */
-export function retextLine(text, cast) {
+/**
+ * 혼자일 때, 대사가 "다른 배역"을 3인칭으로 부르는 자리에 쓸 말.
+ *
+ * 스크립트에는 상대를 이름으로 부르는 대사가 있다.
+ *   { by: 'minjun', text: '오 진짜? 서연이가 우리 초대한대!' }
+ * 한 명이 두 배역을 다 맡는 상태에서 이름을 그대로 넣으면
+ * "나래가 우리 초대한대!" 처럼 자기가 자기를 3인칭으로 부르게 된다.
+ */
+const OTHER_LABEL = '우리 반 친구'
+
+/**
+ * 대사 텍스트 안의 옛 이름을 캐스팅된 이름으로 동시에 치환한다.
+ * @param {string} speakerSlot 이 대사를 말하는 배역 ('minjun' | 'seoyeon')
+ */
+export function retextLine(text, cast, speakerSlot) {
   if (!text) return text
+
   const map = {
     [SLOT_NAME.minjun]: cast.bySlot.minjun.name,
     [SLOT_NAME.seoyeon]: cast.bySlot.seoyeon.name,
   }
+
+  // 혼자일 때, 말하는 사람이 아닌 쪽 이름은 3인칭 호칭으로 바꾼다
+  if (cast.solo && speakerSlot) {
+    const other = speakerSlot === 'minjun' ? 'seoyeon' : 'minjun'
+    map[SLOT_NAME[other]] = OTHER_LABEL
+  }
+
   const swapped = text.replace(/민준|서연/g, (m) => map[m] ?? m)
-  return fixParticles(swapped, [map['민준'], map['서연']])
+  return fixParticles(swapped, Object.values(map))
 }
 
 /** 스크립트 한 줄을 캐스팅에 맞게 변환 */
@@ -68,7 +97,7 @@ export function castLine(line, cast) {
   if (!line) return line
   const slot = cast.bySlot[line.by]
   if (!slot) return line // 'user' 같은 값은 그대로
-  return { ...line, by: slot.id, text: retextLine(line.text, cast) }
+  return { ...line, by: slot.id, text: retextLine(line.text, cast, line.by) }
 }
 
 export function castLines(lines, cast) {

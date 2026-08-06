@@ -99,10 +99,13 @@ export default function ChildHome() {
           </div>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[12.5px] font-semibold text-ink">
-              {withJosa(cast.primary.name, '이랑/랑')}{' '}
-              {withJosa(cast.partner.name, '이/가')} 기다리고 있어요
+              {cast.solo
+                ? `${withJosa(cast.primary.name, '이/가')} 기다리고 있어요`
+                : `${withJosa(cast.primary.name, '이랑/랑')} ${withJosa(cast.partner.name, '이/가')} 기다리고 있어요`}
             </span>
-            <span className="block text-[11px] text-ink-soft">눌러서 친구 바꾸기</span>
+            <span className="block text-[11px] text-ink-soft">
+              {cast.solo ? '눌러서 친구 더 만들기' : '눌러서 친구 바꾸기'}
+            </span>
           </span>
           <span className="flex h-2 w-2 shrink-0 rounded-full bg-mint" />
         </button>
@@ -204,7 +207,11 @@ export default function ChildHome() {
             checked={settings.voice}
             onChange={(v) => updateSettings({ voice: v })}
             label="친구 목소리 듣기"
-            desc={`${withJosa(cast.primary.name, '이와/와')} ${withJosa(cast.partner.name, '이가/가')} 소리 내어 말해요`}
+            desc={
+              cast.solo
+                ? `${withJosa(cast.primary.name, '이가/가')} 소리 내어 말해요`
+                : `${withJosa(cast.primary.name, '이와/와')} ${withJosa(cast.partner.name, '이가/가')} 소리 내어 말해요`
+            }
           />
 
           {/* 말하기 속도 */}

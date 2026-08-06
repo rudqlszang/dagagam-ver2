@@ -90,31 +90,39 @@ export default function ConversationStage({
   thinking,
 }) {
   const [left, right] = characters
+  const solo = characters.length === 1
 
   return (
     <div className="relative mx-auto w-full max-w-[360px] px-4">
       {/* 배경 원 — 둘러앉은 테이블 느낌 */}
       <div className="pointer-events-none absolute left-1/2 top-[38%] h-[210px] w-[210px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-dashed border-brand/15" />
 
-      <div className="relative flex items-start justify-between px-1 pt-14">
+      {/* 친구가 한 명이면 가운데에 조금 더 크게 세운다 */}
+      <div
+        className={`relative flex items-start px-1 pt-14 ${
+          solo ? 'justify-center' : 'justify-between'
+        }`}
+      >
         <SpeakingAvatar
           src={left.avatarUrl}
           name={left.name}
-          size={86}
+          size={solo ? 100 : 86}
           theme={left.theme}
           speaking={speakingId === left.id}
           muted={Boolean(speakingId) && speakingId !== left.id}
           bubble={bubbles?.[left.id]}
         />
-        <SpeakingAvatar
-          src={right.avatarUrl}
-          name={right.name}
-          size={86}
-          theme={right.theme}
-          speaking={speakingId === right.id}
-          muted={Boolean(speakingId) && speakingId !== right.id}
-          bubble={bubbles?.[right.id]}
-        />
+        {right && (
+          <SpeakingAvatar
+            src={right.avatarUrl}
+            name={right.name}
+            size={86}
+            theme={right.theme}
+            speaking={speakingId === right.id}
+            muted={Boolean(speakingId) && speakingId !== right.id}
+            bubble={bubbles?.[right.id]}
+          />
+        )}
       </div>
 
       {/* 가운데 상태 표시 */}

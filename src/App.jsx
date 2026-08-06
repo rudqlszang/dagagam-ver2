@@ -39,6 +39,7 @@ const FULLSCREEN = [
   '/',
   '/child/consent',
   '/child/start',
+  '/child/friends/add',
   '/child/talk',
   '/child/summary',
 ]
@@ -99,6 +100,14 @@ export default function App() {
             element={
               <RequireConsent>
                 <FriendPicker />
+              </RequireConsent>
+            }
+          />
+          <Route
+            path="/child/friends/add"
+            element={
+              <RequireConsent>
+                <FriendOnboarding mode="add" />
               </RequireConsent>
             }
           />
