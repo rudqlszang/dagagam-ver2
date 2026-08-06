@@ -17,7 +17,17 @@
 import Anthropic from '@anthropic-ai/sdk'
 
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-5'
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+
+/**
+ * flash-lite 계열을 쓰는 이유
+ *  - 또래 한두 줄짜리 대화라 큰 모델이 필요 없다. 오히려 느려지고 장황해진다.
+ *  - 무료 티어에서 분당 요청 한도가 가장 넉넉하다.
+ *  - 응답이 1초대다. 아이를 기다리게 하지 않는 게 이 화면에서는 품질이다.
+ *  - `-latest` 별칭이라 구글이 모델을 갈아 끼워도 따라간다.
+ *    (2.5 계열은 신규 프로젝트에 더 이상 제공되지 않아 404가 난다)
+ * 생각(thinking)을 하는 모델로 바꾸려면 maxOutputTokens도 같이 올려야 한다.
+ */
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest'
 
 /** 어떤 제공자를 쓸지 — 무료인 쪽을 먼저 본다 */
 function activeProvider() {
@@ -151,7 +161,8 @@ async function askGemini({ system, prompt }) {
       generationConfig: {
         responseMimeType: 'application/json',
         responseSchema: toGeminiSchema(REPLY_SCHEMA),
-        maxOutputTokens: 512,
+        // 생각하는 모델로 바꿔도 잘리지 않을 만큼 여유를 둔다
+        maxOutputTokens: 1024,
       },
     }),
   })
