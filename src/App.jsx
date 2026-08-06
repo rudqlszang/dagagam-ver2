@@ -11,6 +11,7 @@ import Summary from './pages/child/Summary'
 import MyPage from './pages/child/MyPage'
 import FriendPicker from './pages/child/FriendPicker'
 import FriendMaker from './pages/child/FriendMaker'
+import FriendOnboarding from './pages/child/FriendOnboarding'
 import ParentDashboard from './pages/parent/ParentDashboard'
 import ParentNotices from './pages/parent/ParentNotices'
 import ParentTranscripts from './pages/parent/ParentTranscripts'
@@ -24,8 +25,23 @@ function RequireConsent({ children }) {
   return consented ? children : <Navigate to="/child/consent" replace />
 }
 
+/**
+ * 아이 화면의 시작점은 "친구 만들기"다.
+ * 아직 친구를 안 만들었으면 홈 대신 온보딩으로 보낸다.
+ */
+function RequireFriends({ children }) {
+  const onboarded = useStore((s) => s.onboarded)
+  return onboarded ? children : <Navigate to="/child/start" replace />
+}
+
 /** 하단 내비를 감출 화면들 (몰입이 필요한 화면) */
-const FULLSCREEN = ['/', '/child/consent', '/child/talk', '/child/summary']
+const FULLSCREEN = [
+  '/',
+  '/child/consent',
+  '/child/start',
+  '/child/talk',
+  '/child/summary',
+]
 
 function navRoleFor(pathname) {
   if (pathname.startsWith('/child')) return 'child'
@@ -50,10 +66,20 @@ export default function App() {
           {/* 아이 */}
           <Route path="/child/consent" element={<Consent />} />
           <Route
+            path="/child/start"
+            element={
+              <RequireConsent>
+                <FriendOnboarding />
+              </RequireConsent>
+            }
+          />
+          <Route
             path="/child"
             element={
               <RequireConsent>
-                <ChildHome />
+                <RequireFriends>
+                  <ChildHome />
+                </RequireFriends>
               </RequireConsent>
             }
           />
@@ -61,7 +87,9 @@ export default function App() {
             path="/child/talk/:missionId"
             element={
               <RequireConsent>
-                <Conversation />
+                <RequireFriends>
+                  <Conversation />
+                </RequireFriends>
               </RequireConsent>
             }
           />

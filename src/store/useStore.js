@@ -36,6 +36,7 @@ const DEFAULT_PROFILE = {
   friendId: 'minjun',
   partnerId: 'seoyeon',
   customFriends: [],
+  onboarded: false, // 키워드로 친구 두 명을 만들었는가
   settings: {
     subtitles: true, // 실시간 자막 on/off
     voice: true, // 친구 목소리 켜기
@@ -76,6 +77,7 @@ function persist(state) {
         friendId: state.friendId,
         partnerId: state.partnerId,
         customFriends: state.customFriends,
+        onboarded: state.onboarded,
         settings: state.settings,
       }),
     )
@@ -107,6 +109,7 @@ const initialState = {
   friendId: profile.friendId, // 아이가 고른 짝꿍
   partnerId: profile.partnerId, // 함께 나오는 친구
   customFriends: profile.customFriends, // 직접 만든 친구들
+  onboarded: profile.onboarded, // 키워드로 친구를 만든 적이 있는가
   affinity: seedAffinity(),
 
   /* 설정 */
@@ -179,6 +182,31 @@ export const useStore = create((set, get) => ({
     })
     persist(get())
     return character
+  },
+
+  /**
+   * 온보딩 완료 — 키워드로 만든 친구 두 명을 한꺼번에 확정한다.
+   * 두 명이 항상 짝을 이뤄야 해서 addCustomFriend를 두 번 부르지 않고 따로 둔다.
+   */
+  completeOnboarding: (first, second) => {
+    set((s) => {
+      const customFriends = [...s.customFriends, first, second]
+      registerCustomCharacters(customFriends)
+      return {
+        customFriends,
+        friendId: first.id,
+        partnerId: second.id,
+        onboarded: true,
+        affinity: { ...s.affinity, [first.id]: 0, [second.id]: 0 },
+      }
+    })
+    persist(get())
+  },
+
+  /** 친구를 처음부터 다시 만들고 싶을 때 (만든 친구는 지우지 않는다) */
+  restartOnboarding: () => {
+    set({ onboarded: false })
+    persist(get())
   },
 
   removeCustomFriend: (id) => {

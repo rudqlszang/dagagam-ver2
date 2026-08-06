@@ -7,6 +7,7 @@ import Avatar from '../../components/common/Avatar'
 import Icon from '../../components/common/Icon'
 import { SectionTitle, Sheet, Toggle } from '../../components/common/ui'
 import { isSpeechSupported } from '../../lib/speech'
+import { withJosa } from '../../lib/korean'
 import {
   VOICE_TIER_LABEL,
   getVoiceReport,
@@ -98,7 +99,8 @@ export default function ChildHome() {
           </div>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[12.5px] font-semibold text-ink">
-              {cast.primary.name}이랑 {cast.partner.name}이가 기다리고 있어요
+              {withJosa(cast.primary.name, '이랑/랑')}{' '}
+              {withJosa(cast.partner.name, '이/가')} 기다리고 있어요
             </span>
             <span className="block text-[11px] text-ink-soft">눌러서 친구 바꾸기</span>
           </span>
@@ -202,7 +204,7 @@ export default function ChildHome() {
             checked={settings.voice}
             onChange={(v) => updateSettings({ voice: v })}
             label="친구 목소리 듣기"
-            desc={`${cast.primary.name}이와 ${cast.partner.name}이가 소리 내어 말해요`}
+            desc={`${withJosa(cast.primary.name, '이와/와')} ${withJosa(cast.partner.name, '이가/가')} 소리 내어 말해요`}
           />
 
           {/* 말하기 속도 */}

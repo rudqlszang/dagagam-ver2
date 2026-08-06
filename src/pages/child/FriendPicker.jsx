@@ -13,6 +13,7 @@ import {
   stopAll,
   unlockAudio,
 } from '../../lib/voiceEngine'
+import { withJosa } from '../../lib/korean'
 
 /**
  * 친구 고르기 화면
@@ -31,6 +32,7 @@ export default function FriendPicker() {
   const selectFriend = useStore((s) => s.selectFriend)
   const setPartner = useStore((s) => s.setPartner)
   const removeCustomFriend = useStore((s) => s.removeCustomFriend)
+  const restartOnboarding = useStore((s) => s.restartOnboarding)
   const speed = useStore((s) => s.settings.voiceSpeed)
   const voiceOn = useStore((s) => s.settings.voice)
 
@@ -200,6 +202,28 @@ export default function FriendPicker() {
         </button>
       </div>
 
+      {/* 키워드로 두 명 다시 만들기 */}
+      <button
+        onClick={() => {
+          restartOnboarding()
+          navigate('/child/start')
+        }}
+        className="mt-2.5 flex w-full items-center gap-3 rounded-3xl bg-white p-3.5 text-left shadow-sm ring-1 ring-black/5 active:bg-paper"
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-sun-soft text-lg">
+          🎲
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[14.5px] font-extrabold text-ink">
+            키워드로 두 명 다시 만들기
+          </span>
+          <span className="block text-[11.5px] text-ink-soft">
+            처음처럼 좋아하는 것·성격을 골라서 새로 만들어요
+          </span>
+        </span>
+        <Icon name="play" className="h-4 w-4 shrink-0 text-ink-faint" />
+      </button>
+
       {/* 함께 나올 친구 */}
       <h2 className="mb-1 mt-6 px-1 text-[15px] font-bold text-ink">함께 나올 친구</h2>
       <p className="mb-2.5 px-1 text-[12px] leading-relaxed text-ink-soft">
@@ -261,7 +285,9 @@ export default function FriendPicker() {
       <Sheet
         open={Boolean(confirmDelete)}
         onClose={() => setConfirmDelete(null)}
-        title={`${confirmDelete?.name ?? ''}을(를) 지울까요?`}
+        title={
+          confirmDelete ? `${withJosa(confirmDelete.name, '을/를')} 지울까요?` : ''
+        }
       >
         <p className="-mt-1 mb-4 text-[13px] leading-relaxed text-ink-soft">
           지우면 다시 만들어야 해요.

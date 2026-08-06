@@ -38,6 +38,7 @@ export default function Consent() {
   const setNickname = useStore((s) => s.setNickname)
 
   const consented = useStore((s) => s.consented)
+  const onboarded = useStore((s) => s.onboarded)
 
   const [checked, setChecked] = useState({})
   const [name, setName] = useState(nickname)
@@ -70,10 +71,15 @@ export default function Consent() {
     setSubmitted(true)
   }
 
-  /* 동의가 스토어에 실제로 반영된 뒤에 넘어간다 (가드에 되튕기지 않도록) */
+  /*
+   * 동의가 스토어에 실제로 반영된 뒤에 넘어간다 (가드에 되튕기지 않도록).
+   * 친구를 아직 안 만들었으면 홈이 아니라 친구 만들기부터 시작한다.
+   */
   useEffect(() => {
-    if (submitted && consented) navigate('/child', { replace: true })
-  }, [submitted, consented, navigate])
+    if (submitted && consented) {
+      navigate(onboarded ? '/child' : '/child/start', { replace: true })
+    }
+  }, [submitted, consented, onboarded, navigate])
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-cream">

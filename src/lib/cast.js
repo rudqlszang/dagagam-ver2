@@ -13,6 +13,7 @@
  */
 
 import { getCharacter } from '../mock/characters'
+import { hasBatchim } from './korean'
 
 /** 스크립트가 쓰는 배역 슬롯 (순서 = 무대에 서는 순서) */
 export const SLOTS = ['minjun', 'seoyeon']
@@ -36,23 +37,16 @@ export function buildCast(primaryId, partnerId) {
   }
 }
 
-/** 종성이 없는(=모음으로 끝나는) 한글인지 */
-function endsWithVowel(name) {
-  const last = name.charCodeAt(name.length - 1) - 0xac00
-  if (last < 0 || last > 11171) return true // 한글이 아니면 모음 취급
-  return last % 28 === 0
-}
-
 /**
  * "서연이야" → "유나야" 처럼, 이름을 바꾼 뒤 남는 매개 '이'를 정리한다.
- * 모음으로 끝나는 이름 뒤에서는 '이'를 붙이지 않는 게 자연스럽다.
+ * 받침 없는 이름 뒤에서는 '이'를 붙이지 않는 게 자연스럽다.
  */
 const PARTICLE_AFTER = '야가는를도랑한테라에\\s,.!?'
 
 function fixParticles(text, names) {
   let out = text
   for (const name of names) {
-    if (!endsWithVowel(name)) continue
+    if (hasBatchim(name)) continue
     out = out.replace(new RegExp(`${name}이(?=[${PARTICLE_AFTER}])`, 'g'), name)
   }
   return out

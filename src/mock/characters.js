@@ -293,6 +293,126 @@ export function buildCustomCharacter(draft, id) {
   }
 }
 
+/* ── 키워드로 친구 만들기 (아이 첫 진입 온보딩) ─────────────────── */
+
+/**
+ * 아이는 "어떤 친구였으면 좋겠어?"를 키워드로만 답한다.
+ * 이름 · 얼굴 · 색 · 목소리는 그 키워드에서 자동으로 뽑아 준다.
+ * (초등 저학년이 항목을 일일이 채우게 하면 중간에 이탈한다)
+ */
+
+export const HOBBY_KEYWORDS = [
+  { label: '축구', emoji: '⚽' },
+  { label: '게임', emoji: '🎮' },
+  { label: 'K-pop', emoji: '🎵' },
+  { label: '그림', emoji: '🎨' },
+  { label: '책', emoji: '📚' },
+  { label: '춤', emoji: '💃' },
+  { label: '동물', emoji: '🐶' },
+  { label: '요리', emoji: '🍳' },
+  { label: '로봇', emoji: '🤖' },
+  { label: '자전거', emoji: '🚲' },
+  { label: '노래', emoji: '🎤' },
+  { label: '만화', emoji: '📺' },
+]
+
+/**
+ * 성격 키워드 — 말투(persona)와 목소리(pitch/rate)를 동시에 결정한다.
+ *
+ * label은 아이가 고르는 칩에 쓰는 대화체("활발해"),
+ * adj는 문장에 끼워 넣을 관형형("활발한 친구")이다. 둘을 섞어 쓰면
+ * "활발해 친구" 같은 문장이 나온다.
+ */
+export const TRAIT_KEYWORDS = [
+  { label: '활발해', adj: '활발한', persona: '늘 신나 있고 먼저 말을 건다.', pitch: 1.55, rate: 1.08 },
+  { label: '차분해', adj: '차분한', persona: '조용조용 말하고 서두르지 않는다.', pitch: 1.2, rate: 0.9 },
+  { label: '장난꾸러기야', adj: '장난기 많은', persona: '농담을 자주 하고 리액션이 크다.', pitch: 1.5, rate: 1.1 },
+  { label: '잘 들어 줘', adj: '잘 들어 주는', persona: '끝까지 듣고 아이 말을 되짚어 준다.', pitch: 1.35, rate: 0.95 },
+  { label: '칭찬을 많이 해', adj: '칭찬을 많이 하는', persona: '아이가 한 말을 크게 칭찬해 준다.', pitch: 1.6, rate: 1.02 },
+  { label: '천천히 말해', adj: '천천히 말하는', persona: '한 문장씩 또박또박 천천히 말한다.', pitch: 1.25, rate: 0.82 },
+  { label: '질문을 많이 해', adj: '질문이 많은', persona: '“왜?”, “그래서 어떻게 됐어?” 하고 계속 물어본다.', pitch: 1.45, rate: 1.05 },
+  { label: '설명을 잘해', adj: '설명을 잘하는', persona: '어려운 말이 나오면 꼭 쉬운 말로 바꿔서 알려 준다.', pitch: 1.3, rate: 0.92 },
+]
+
+/** 순우리말 이름 — 받침 유무가 섞여 있어야 조사 처리가 자연스럽다 */
+const NAME_POOL = [
+  '하루', '별이', '다온', '나래', '온유', '바다', '새록', '도담',
+  '가온', '여울', '미르', '한별', '초록', '소리', '유리', '시아',
+]
+
+/** 문자열을 안정적인 숫자로 — 같은 키워드면 같은 결과가 나오게 */
+function hash(str) {
+  let h = 0
+  for (let i = 0; i < str.length; i += 1) h = (h * 31 + str.charCodeAt(i)) >>> 0
+  return h
+}
+
+const HOBBY_EMOJI = Object.fromEntries(HOBBY_KEYWORDS.map((h) => [h.label, h.emoji]))
+
+/**
+ * 키워드만으로 친구 하나를 만든다.
+ *
+ * @param {object} picks  { likes: string[], traits: string[], extra?: string, background?: string }
+ * @param {object} opts   { id, roll = 0, avoidAccents = [] }
+ *                        roll을 올리면 이름·얼굴·목소리가 바뀐다 ("다시 뽑기")
+ */
+export function buildFriendFromKeywords(picks, { id, roll = 0, avoidAccents = [] } = {}) {
+  const likes = picks.likes?.length ? picks.likes : ['이야기하기']
+  const traitDefs = (picks.traits?.length ? picks.traits : ['잘 들어 줘'])
+    .map((t) => TRAIT_KEYWORDS.find((k) => k.label === t))
+    .filter(Boolean)
+
+  const key = hash([...likes, ...traitDefs.map((t) => t.label), String(roll)].join('|'))
+
+  const name = NAME_POOL[key % NAME_POOL.length]
+  const emoji = HOBBY_EMOJI[likes[0]] ?? '✨'
+
+  // 두 친구가 같은 색이 되지 않도록 피한다
+  const free = ACCENT_KEYS.filter((a) => !avoidAccents.includes(a))
+  const accent = (free.length ? free : ACCENT_KEYS)[key % (free.length || ACCENT_KEYS.length)]
+
+  // 목소리는 고른 성격들의 평균 — '천천히 말해'를 고르면 실제로 느려진다
+  const avg = (field) =>
+    traitDefs.reduce((sum, t) => sum + t[field], 0) / (traitDefs.length || 1)
+  const gender = key % 2 === 0 ? 'female' : 'male'
+
+  const personaParts = [
+    `${likes.join(', ')}을(를) 좋아한다.`,
+    ...traitDefs.map((t) => t.persona),
+    '또래 친구처럼 반말로 짧게 말한다.',
+  ]
+  if (picks.extra?.trim()) personaParts.unshift(`${picks.extra.trim()}에 관심이 많다.`)
+  if (picks.background?.trim()) personaParts.push(picks.background.trim())
+
+  return {
+    id,
+    name,
+    emoji,
+    seed: `${id}-${name}-${roll}`,
+    accent,
+    theme: THEMES[accent],
+    avatarUrl: dicebearUrl(`${id}-${name}-${roll}`, { backgroundColor: AVATAR_BG[accent] }),
+    voiceDir: `/voice/${id}`,
+    tagline: `${likes.slice(0, 2).join('·')} 좋아하는 ${traitDefs[0]?.adj ?? '다정한'} 친구`,
+    traits: traitDefs.map((t) => t.label),
+    likes,
+    background: picks.background?.trim() || null,
+    persona: personaParts.join(' '),
+    voice: {
+      gender,
+      pitch: Math.round(avg('pitch') * 100) / 100,
+      rate: Math.round(avg('rate') * 100) / 100,
+    },
+    keywords: { likes, traits: traitDefs.map((t) => t.label), extra: picks.extra ?? '' },
+    roll,
+    custom: true,
+  }
+}
+
+export function emptyKeywordPicks() {
+  return { likes: [], traits: [], extra: '', background: '' }
+}
+
 export function emptyCustomDraft() {
   return {
     name: '',
