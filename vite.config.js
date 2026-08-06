@@ -68,11 +68,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     // 배포 위치에 따라 base 경로가 다르다.
-    //   GitHub Pages 프로젝트 사이트 → /dagagam/ 아래
+    //   GitHub Pages 프로젝트 사이트 → /dagagam-ver2/ 아래 (저장소 이름과 같아야 한다)
     //   Vercel · 로컬 개발          → 루트(/)
     // Vercel은 빌드 중 VERCEL 환경변수를 자동으로 넣어 준다.
     base:
-      process.env.VERCEL || mode !== 'production' ? '/' : '/dagagam/',
+      process.env.VERCEL || mode !== 'production' ? '/' : '/dagagam-ver2/',
     plugins: [react(), tailwindcss(), devApiRoutes()],
   }
 })
