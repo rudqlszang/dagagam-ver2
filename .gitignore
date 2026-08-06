@@ -12,10 +12,6 @@ dist
 dist-ssr
 *.local
 
-# API 키 — 절대 커밋하지 않는다
-.env
-.env.*
-!.env.example
 .vercel
 
 # Editor directories and files
@@ -28,3 +24,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# API 키 — 절대 커밋하지 않는다. (예시 파일만 예외)
+# 부정(!) 규칙은 반드시 무시 규칙보다 뒤에 와야 먹는다.
+.env*
+!.env.example
